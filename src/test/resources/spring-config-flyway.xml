@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:util="http://www.springframework.org/schema/util" xmlns:security="http://www.springframework.org/schema/security"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:jpa="http://www.springframework.org/schema/data/jpa"
+	xsi:schemalocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        			http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+        			 http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+                    http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+                    http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+					http://www.springframework.org/schema/security  http://www.springframework.org/schema/security/spring-security.xsd
+       	 			http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd
+       	 			http://www.springframework.org/schema/data/jpa http://www.springframework.org/schema/data/jpa/spring-jpa.xsd"
+	default-lazy-init="true">
+	
+   	<bean id="flyway" class="com.jeefw.db.flyway.FlywayWithoutClean" depends-on="dataSource" lazy-init="true">
+		<!-- 指定数据源   -->
+		<property name="dataSource" ref="dataSource"/>
+		<!-- 指定SQL起始版本信息   -->
+		<property name="baselineVersionAsString" value="1.0.0"/>
+		<property name="baselineDescription" value="系统初始化基线"/>
+		<property name="baselineOnMigrate" value="true"/>
+		<!-- <property name="baselineVersion">
+			<bean class="org.flywaydb.core.api.MigrationVersion">  
+                    <constructor-arg>
+                    	<bean class="java.math.BigInteger.BigInteger">
+                    		指定数据库起始版本  
+                    		<constructor-arg value="1.0.0"/>
+                    	</bean>
+                    </constructor-arg>  
+                    <constructor-arg value="系统初始化基线"/>
+                </bean>  
+		</property> -->
+	    <!-- 禁止对数据库进行相关清除操作
+	    <property name="cleanDisabled" value="true"/> -->
+	    <!-- 如果已经有版本1和3，当发现新的版本2时，如果此参数为true,将会把版本2作为当前版本 -->
+	    <property name="outOfOrder" value="false"/>
+	    <!-- 在进行版本升级前是否进行SQL版本信息校验 -->
+	    <property name="validateOnMigrate" value="false"/>
+	    <!-- 指定记录SQL版本的表名称  
+	    <property name="table" value="schema_version"/>-->
+	    <!-- SQL脚步占位符所使用的替换值来源，即供SQL脚步中使用${}占位符取值的map  -->
+        <property name="placeholders">
+             <map>
+                 <entry key="table_pre" value="JEEFW_"></entry>
+                 <entry key="table_names" value="'JEEFW_XTGL_INI','JEEFW_XTGL_SETTINGS'"></entry>
+             </map>
+        </property>
+	</bean>
+	
+	<bean id="flywayMigration" class="com.jeefw.db.flyway.FlywayMigration" lazy-init="true" depends-on="flyway">
+	    <!-- 注入flyway对象 -->
+	    <property name="flyway" ref="flyway"/>
+	    <!-- 是否忽略版本升级 -->
+	    <property name="ignoreMigration" value="true"/>
+	    <!-- 是否版本升级完成后清除已升级的SQl文件 -->
+	    <property name="clearMigrated" value="false"/>
+	    <!-- 是否版本升级完成后重命名已升级的SQl文件,该参数在 clearMigrated = true 时无作用-->
+	    <property name="renameMigrated" value="true"/>
+	    <!-- 是否版本升级完成后重命名已升级的SQl使用的后缀名称,默认.back -->
+	    <property name="sqlRenameSuffix" value=".back"/>
+	</bean>
+	
+</beans>
+
