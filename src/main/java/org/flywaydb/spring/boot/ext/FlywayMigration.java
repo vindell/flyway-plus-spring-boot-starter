@@ -11,7 +11,9 @@ import org.flywaydb.core.internal.util.scanner.Resource;
 import org.flywaydb.core.internal.util.scanner.Scanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
 
 /**
  * 
@@ -21,7 +23,7 @@ import org.springframework.beans.factory.InitializingBean;
  * @date		： 2017年8月20日 下午5:22:02
  * @version 	V1.0
  */
-public class FlywayMigration implements InitializingBean {
+public class FlywayMigration implements ObjectProvider<FlywayMigrationStrategy>, FlywayMigrationStrategy {
 	
 	protected static Logger LOG = LoggerFactory.getLogger(FlywayMigration.class);
 	/**
@@ -41,63 +43,6 @@ public class FlywayMigration implements InitializingBean {
      */
     private String sqlRenameSuffix = ".back";
     
-	protected Flyway flyway;
-	
-	@Override
-	public void afterPropertiesSet() throws Exception {
-		
-		doMigration();
-		
-	}
-    
-	public void doMigration(){
-		//是否忽略升级
-		if(this.isIgnoreMigration()){
-			
-			LOG.info("Flyway Migration has ignored . ");
-	        
-		} else {
-
-			LOG.info("[Start] Flyway Migration run .. ");
-			
-	        try {
-	        	
-	        	// 执行migrate操作
-				flyway.migrate();
-				
-				//清除已升级过的SQL文件
-				if(this.isClearMigrated()){
-				
-					//SQL扫描器
-					Scanner scanner = new Scanner(flyway.getClassLoader());
-					
-					//执行完成SQL版本升级后，删除已升级的脚步，防止有人改动数据库表中的版本号，导致SQL再次执行
-					this.clearMigrated(scanner , flyway.getSqlMigrationPrefix(),flyway.getSqlMigrationSeparator(),flyway.getSqlMigrationSuffix());
-					this.clearMigrated(scanner , flyway.getRepeatableSqlMigrationPrefix(),flyway.getSqlMigrationSeparator(),flyway.getSqlMigrationSuffix());
-				
-				}
-				//重命名已升级过的文件
-				else if(this.isRenameMigrated()){
-					
-					//SQL扫描器
-					Scanner scanner = new Scanner(flyway.getClassLoader());
-					
-					//执行完成SQL版本升级后，重命名已升级的脚步，防止有人改动数据库表中的版本号，导致SQL再次执行
-					this.renameMigrated(scanner , flyway.getSqlMigrationPrefix(),flyway.getSqlMigrationSeparator(),flyway.getSqlMigrationSuffix());
-					this.renameMigrated(scanner , flyway.getRepeatableSqlMigrationPrefix(),flyway.getSqlMigrationSeparator(),flyway.getSqlMigrationSuffix());
-				
-					
-				}
-				
-			} catch (Exception e) {
-				
-				LOG.error("Flyway Migrated Error . ", e);
-				
-			}
-	        LOG.info("[End] Flyway Migration run .. ");
-			
-		}
-	}
 	
 	protected Object getField(String fieldName,Object target) {
 		Field field = null;
@@ -125,7 +70,7 @@ public class FlywayMigration implements InitializingBean {
 		return result;
 	}
 	
-	protected void clearMigrated(Scanner scanner ,String prefix, String separator, String suffix) {
+	protected void clearMigrated(Flyway flyway, Scanner scanner ,String prefix, String separator, String suffix) {
 		//利用反射取出路径对象信息
 		Locations locations = (Locations) getField("locations", flyway);
 		//循环路径信息
@@ -150,7 +95,7 @@ public class FlywayMigration implements InitializingBean {
         }
 	}
 	
-	protected void renameMigrated(Scanner scanner ,String prefix, String separator, String suffix) {
+	protected void renameMigrated(Flyway flyway, Scanner scanner ,String prefix, String separator, String suffix) {
 		//利用反射取出路径对象信息
 		Locations locations = (Locations) getField("locations", flyway);
 		//循环路径信息
@@ -175,10 +120,6 @@ public class FlywayMigration implements InitializingBean {
         }
 	}
 	
-    public void setFlyway(Flyway flyway) {
-        this.flyway = flyway;
-    }
-
 	/**
 	 * @return the ignoreMigration
 	 */
@@ -233,6 +174,75 @@ public class FlywayMigration implements InitializingBean {
 	 */
 	public void setSqlRenameSuffix(String sqlRenameSuffix) {
 		this.sqlRenameSuffix = sqlRenameSuffix;
+	}
+
+	@Override
+	public FlywayMigrationStrategy getObject() throws BeansException {
+		return this;
+	}
+
+	@Override
+	public FlywayMigrationStrategy getObject(Object... args) throws BeansException {
+		return this;
+	}
+
+	@Override
+	public FlywayMigrationStrategy getIfAvailable() throws BeansException {
+		return this;
+	}
+
+	@Override
+	public FlywayMigrationStrategy getIfUnique() throws BeansException {
+		return this;
+	}
+
+	@Override
+	public void migrate(Flyway flyway) {
+		//是否忽略升级
+		if(this.isIgnoreMigration()){
+			
+			LOG.info("Flyway Migration has ignored . ");
+	        
+		} else {
+
+			LOG.info("[Start] Flyway Migration run .. ");
+			
+	        try {
+	        	
+	        	// 执行migrate操作
+				flyway.migrate();
+				
+				//清除已升级过的SQL文件
+				if(this.isClearMigrated()){
+				
+					//SQL扫描器
+					Scanner scanner = new Scanner(flyway.getClassLoader());
+					
+					//执行完成SQL版本升级后，删除已升级的脚步，防止有人改动数据库表中的版本号，导致SQL再次执行
+					this.clearMigrated(flyway, scanner , flyway.getSqlMigrationPrefix(),flyway.getSqlMigrationSeparator(),flyway.getSqlMigrationSuffix());
+					this.clearMigrated(flyway, scanner , flyway.getRepeatableSqlMigrationPrefix(),flyway.getSqlMigrationSeparator(),flyway.getSqlMigrationSuffix());
+				
+				}
+				//重命名已升级过的文件
+				else if(this.isRenameMigrated()){
+					
+					//SQL扫描器
+					Scanner scanner = new Scanner(flyway.getClassLoader());
+					
+					//执行完成SQL版本升级后，重命名已升级的脚步，防止有人改动数据库表中的版本号，导致SQL再次执行
+					this.renameMigrated(flyway, scanner , flyway.getSqlMigrationPrefix(),flyway.getSqlMigrationSeparator(),flyway.getSqlMigrationSuffix());
+					this.renameMigrated(flyway, scanner , flyway.getRepeatableSqlMigrationPrefix(),flyway.getSqlMigrationSeparator(),flyway.getSqlMigrationSuffix());
+					
+				}
+				
+			} catch (Exception e) {
+				
+				LOG.error("Flyway Migrated Error . ", e);
+				
+			}
+	        LOG.info("[End] Flyway Migration run .. ");
+			
+		}
 	}
 	
 	

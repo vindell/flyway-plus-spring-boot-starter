@@ -4,12 +4,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.springframework.boot.autoconfigure.flyway.FlywayProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties("spring.datasource.flyway")
-public class FlywayProperties {
-
-	protected Boolean enabled = false;
+@ConfigurationProperties("flyway.migration")
+public class FlywayMigrationProperties extends FlywayProperties {
 
 	// org.flywaydb.core.Flyway 参数
 
@@ -17,9 +16,6 @@ public class FlywayProperties {
 	 * 在没有数据源的情况下，如果使用flyway需要指定数据库链接参数
 	 */
 	protected String driver;
-	protected String url;
-	protected String user;
-	protected String password;
 
 	/**
 	 * The locations to scan recursively for migrations.
@@ -271,13 +267,6 @@ public class FlywayProperties {
 	 */
 	protected String sqlRenameSuffix = ".back";
 
-	public Boolean getEnabled() {
-		return enabled;
-	}
-
-	public void setEnabled(Boolean enabled) {
-		this.enabled = enabled;
-	}
 
 	public String getDriver() {
 		return driver;
@@ -286,39 +275,7 @@ public class FlywayProperties {
 	public void setDriver(String driver) {
 		this.driver = driver;
 	}
-
-	public String getUrl() {
-		return url;
-	}
-
-	public void setUrl(String url) {
-		this.url = url;
-	}
-
-	public String getUser() {
-		return user;
-	}
-
-	public void setUser(String user) {
-		this.user = user;
-	}
-
-	public String getPassword() {
-		return password;
-	}
-
-	public void setPassword(String password) {
-		this.password = password;
-	}
-
-	public String getLocations() {
-		return locations;
-	}
-
-	public void setLocations(String locations) {
-		this.locations = locations;
-	}
-
+	
 	public String getEncoding() {
 		return encoding;
 	}
