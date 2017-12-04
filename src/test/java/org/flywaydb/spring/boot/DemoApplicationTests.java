@@ -1,4 +1,4 @@
-package com.zfsoft.cloud.demo;
+package org.flywaydb.spring.boot;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
