@@ -14,7 +14,7 @@
        	 			http://www.springframework.org/schema/data/jpa http://www.springframework.org/schema/data/jpa/spring-jpa.xsd"
 	default-lazy-init="true">
 	
-   	<bean id="flyway" class="com.jeefw.db.flyway.FlywayWithoutClean" depends-on="dataSource" lazy-init="true">
+   	<bean id="flyway" class="com.jeebiz.db.flyway.FlywayWithoutClean" depends-on="dataSource" lazy-init="true">
 		<!-- 指定数据源   -->
 		<property name="dataSource" ref="dataSource"/>
 		<!-- 指定SQL起始版本信息   -->
@@ -49,7 +49,7 @@
         </property>
 	</bean>
 	
-	<bean id="flywayMigration" class="com.jeefw.db.flyway.FlywayMigration" lazy-init="true" depends-on="flyway">
+	<bean id="flywayMigration" class="com.jeebiz.db.flyway.FlywayMigration" lazy-init="true" depends-on="flyway">
 	    <!-- 注入flyway对象 -->
 	    <property name="flyway" ref="flyway"/>
 	    <!-- 是否忽略版本升级 -->
