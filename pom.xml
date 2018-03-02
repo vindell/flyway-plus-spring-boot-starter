@@ -38,7 +38,6 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<java.version>1.8</java.version>
 		<javax.servlet-api.version>3.1.0</javax.servlet-api.version>
-		<flyway.version>4.2.0</flyway.version>
 	</properties>
 
 	<dependencies>
@@ -276,11 +275,9 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-source-plugin</artifactId>
 			</plugin>
-
 			<plugin>
 				<groupId>org.flywaydb</groupId>
 				<artifactId>flyway-maven-plugin</artifactId>
-				<version>4.2.0</version>
 			</plugin>
 
 		</plugins>

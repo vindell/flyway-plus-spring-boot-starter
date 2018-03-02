@@ -110,8 +110,8 @@ public class FlywayMigrationProvider implements ObjectProvider<FlywayMigrationSt
 					Scanner scanner = new Scanner(flyway.getClassLoader());
 					
 					//执行完成SQL版本升级后，删除已升级的脚步，防止有人改动数据库表中的版本号，导致SQL再次执行
-					this.clearMigrated(flyway, scanner , flyway.getSqlMigrationPrefix(),flyway.getSqlMigrationSeparator(),flyway.getSqlMigrationSuffix());
-					this.clearMigrated(flyway, scanner , flyway.getRepeatableSqlMigrationPrefix(),flyway.getSqlMigrationSeparator(),flyway.getSqlMigrationSuffix());
+					this.clearMigrated(flyway, scanner , flyway.getSqlMigrationPrefix(),flyway.getSqlMigrationSeparator(),flyway.getSqlMigrationSuffixes());
+					this.clearMigrated(flyway, scanner , flyway.getRepeatableSqlMigrationPrefix(),flyway.getSqlMigrationSeparator(),flyway.getSqlMigrationSuffixes());
 				
 				}
 				//重命名已升级过的文件
@@ -121,8 +121,8 @@ public class FlywayMigrationProvider implements ObjectProvider<FlywayMigrationSt
 					Scanner scanner = new Scanner(flyway.getClassLoader());
 					
 					//执行完成SQL版本升级后，重命名已升级的脚步，防止有人改动数据库表中的版本号，导致SQL再次执行
-					this.renameMigrated(flyway, scanner , flyway.getSqlMigrationPrefix(),flyway.getSqlMigrationSeparator(),flyway.getSqlMigrationSuffix());
-					this.renameMigrated(flyway, scanner , flyway.getRepeatableSqlMigrationPrefix(),flyway.getSqlMigrationSeparator(),flyway.getSqlMigrationSuffix());
+					this.renameMigrated(flyway, scanner , flyway.getSqlMigrationPrefix(),flyway.getSqlMigrationSeparator(),flyway.getSqlMigrationSuffixes());
+					this.renameMigrated(flyway, scanner , flyway.getRepeatableSqlMigrationPrefix(),flyway.getSqlMigrationSeparator(),flyway.getSqlMigrationSuffixes());
 					
 				}
 				
@@ -164,13 +164,13 @@ public class FlywayMigrationProvider implements ObjectProvider<FlywayMigrationSt
 		return result;
 	}
 	
-	protected void clearMigrated(Flyway flyway, Scanner scanner ,String prefix, String separator, String suffix) {
+	protected void clearMigrated(Flyway flyway, Scanner scanner ,String prefix, String separator, String[] suffixs) {
 		//利用反射取出路径对象信息
 		Locations locations = (Locations) getField("locations", flyway);
 		//循环路径信息
 		for (Location location : locations.getLocations()) {
 			//扫描SQL文件
-			for (Resource resource : scanner.scanForResources(location, prefix , suffix )) {
+			for (Resource resource : scanner.scanForResources(location, prefix , suffixs )) {
 				// 物理路径
 				String locationOnDisk =  resource.getLocationOnDisk();
 	            try {
@@ -189,13 +189,13 @@ public class FlywayMigrationProvider implements ObjectProvider<FlywayMigrationSt
         }
 	}
 	
-	protected void renameMigrated(Flyway flyway, Scanner scanner ,String prefix, String separator, String suffix) {
+	protected void renameMigrated(Flyway flyway, Scanner scanner ,String prefix, String separator, String[] suffixs) {
 		//利用反射取出路径对象信息
 		Locations locations = (Locations) getField("locations", flyway);
 		//循环路径信息
 		for (Location location : locations.getLocations()) {
 			//扫描SQL文件
-			for (Resource resource : scanner.scanForResources(location, prefix , suffix )) {
+			for (Resource resource : scanner.scanForResources(location, prefix , suffixs )) {
 				// 物理路径
 				String locationOnDisk =  resource.getLocationOnDisk();
 	            try {
