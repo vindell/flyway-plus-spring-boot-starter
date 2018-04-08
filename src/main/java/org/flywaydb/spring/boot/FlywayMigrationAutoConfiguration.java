@@ -17,13 +17,8 @@ import org.springframework.context.annotation.Configuration;
 
 
 /**
- * 
- * @className	： FlywayMigrationAutoConfiguration
- * @description	： TODO(描述这个类的作用)
+ * 扩展Flyway实现，解决使用Druid数据源时执行SQL权限问题（Druid安全机制导致）
  * @author 		： <a href="https://github.com/vindell">vindell</a>
- * @date		： 2017年11月15日 下午1:09:21
- * @version 	V1.0
- * @see http://blog.csdn.net/tanghin/article/details/51264795
  */
 @Configuration
 @ConditionalOnClass(Flyway.class)

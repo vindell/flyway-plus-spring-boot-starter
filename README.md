@@ -1,4 +1,4 @@
-# spring-boot-starter-flyway
+# spring-boot-starter-flyway-plus
 flyway starter for spring boot
 
 ### 说明
@@ -13,8 +13,8 @@ flyway starter for spring boot
 
 ``` xml
 <dependency>
-	<groupId>${project.groupId}</groupId>
-	<artifactId>spring-boot-starter-flyway</artifactId>
+	<groupId>com.github.vindell</groupId>
+	<artifactId>spring-boot-starter-flyway-plus</artifactId>
 	<version>${project.version}</version>
 </dependency>
 ```

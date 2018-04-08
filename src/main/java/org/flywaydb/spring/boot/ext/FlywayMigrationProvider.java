@@ -24,12 +24,8 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.util.ObjectUtils;
 
 /**
- * 
- * @className	： FlywayMigrationProvider
- * @description	： TODO(描述这个类的作用)
+ * TODO
  * @author 		： <a href="https://github.com/vindell">vindell</a>
- * @date		： 2017年11月15日 上午8:54:10
- * @version 	V1.0
  */
 public class FlywayMigrationProvider implements ObjectProvider<FlywayMigrationStrategy>, FlywayMigrationStrategy, ApplicationContextAware {
 	
