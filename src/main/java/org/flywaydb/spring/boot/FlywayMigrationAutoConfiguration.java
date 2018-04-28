@@ -23,7 +23,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConditionalOnClass(Flyway.class)
 @ConditionalOnBean(DataSource.class)
-@ConditionalOnProperty(prefix = FlywayMigrationProperties.PREFIX, name = "enabled", matchIfMissing = true)
+@ConditionalOnProperty(prefix = FlywayMigrationProperties.PREFIX, name = "enabled", havingValue = "true")
 @AutoConfigureBefore(FlywayAutoConfiguration.class)
 @EnableConfigurationProperties({ FlywayMigrationProperties.class })
 public class FlywayMigrationAutoConfiguration{
