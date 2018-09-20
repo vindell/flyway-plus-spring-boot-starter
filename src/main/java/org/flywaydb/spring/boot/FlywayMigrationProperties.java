@@ -7,7 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(FlywayMigrationProperties.PREFIX)
 public class FlywayMigrationProperties {
 
-	public static final String PREFIX = "flyway";
+	public static final String PREFIX = "spring.flyway";
 
 	// org.flywaydb.core.Flyway 参数
 

@@ -7,7 +7,7 @@ flyway starter for spring boot
  > 基于 flyway 的 Spring Boot Starter 实现
 
 1. 整合flyway, 增加安全模式参数
-2. 
+2. 兼容druid数据源开启安全过滤器后引起的脚本无法执行错误
 
 ### Maven
 
