@@ -2,19 +2,13 @@ package org.flywaydb.spring.boot;
 
 import java.util.Properties;
 
+import org.flywaydb.core.api.configuration.ClassicConfiguration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(FlywayMigrationProperties.PREFIX)
-public class FlywayMigrationProperties {
+public class FlywayMigrationProperties extends ClassicConfiguration {
 
 	public static final String PREFIX = "spring.flyway";
-
-	// org.flywaydb.core.Flyway 参数
-
-	/**
-	 * 在没有数据源的情况下，如果使用flyway需要指定数据库链接参数
-	 */
-	private String driver;
 
 	/**
 	 * Whether to automatically call validate or not when running migrate. (default:
@@ -64,14 +58,6 @@ public class FlywayMigrationProperties {
 	 * The file name suffix for sql migrations after migrated. (default: .back)
 	 */
 	private String sqlRenameSuffix = ".back";
-
-	public String getDriver() {
-		return driver;
-	}
-
-	public void setDriver(String driver) {
-		this.driver = driver;
-	}
 
 	public boolean isValidateOnMigrate() {
 		return validateOnMigrate;
