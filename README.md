@@ -15,7 +15,7 @@ flyway starter for spring boot
 <dependency>
 	<groupId>com.github.vindell</groupId>
 	<artifactId>spring-boot-starter-flyway-plus</artifactId>
-	<version>${project.version}</version>
+	<version>1.0.2.RELEASE</version>
 </dependency>
 ```
 
