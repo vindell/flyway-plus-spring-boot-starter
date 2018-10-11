@@ -1,146 +1,124 @@
 package org.flywaydb.spring.boot;
 
-import java.util.Properties;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
-import org.flywaydb.core.api.configuration.ClassicConfiguration;
+import org.flywaydb.spring.boot.ext.FlywayModuleProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(FlywayMigrationProperties.PREFIX)
-public class FlywayMigrationProperties extends ClassicConfiguration {
+public class FlywayMigrationProperties {
 
 	public static final String PREFIX = "spring.flyway";
 
 	/**
-	 * Whether to automatically call validate or not when running migrate. (default:
-	 * {@code true}) 在进行版本升级前是否进行SQL版本信息校验
+	 * The locations of migrations scripts. Can contain the special "{vendor}" placeholder
+	 * to use vendor-specific locations.
 	 */
-	private boolean validateOnMigrate = true;
+	private List<String> locations = new ArrayList<>(
+			Collections.singletonList("classpath:db/migration"));
+
+	/**
+	 * Whether to check that migration scripts location exists.
+	 */
+	private boolean checkLocation = true;
+
+	/**
+	 * Whether to enable flyway.
+	 */
+	private boolean enabled = true;
+
+	/**
+	 * Login user of the database to migrate.
+	 */
+	private String user;
+
+	/**
+	 * JDBC password to use if you want Flyway to create its own DataSource.
+	 */
+	private String password;
+
+	/**
+	 * JDBC url of the database to migrate. If not set, the primary configured data source
+	 * is used.
+	 */
+	private String url;
+
+	/**
+	 * SQL statements to execute to initialize a connection immediately after obtaining
+	 * it.
+	 */
+	private List<String> initSqls = new ArrayList<>();
 	
-	 /**
-     * Whether to automatically call clean or not when a validation error occurs. (default: {@code false})
-     * <p> This is exclusively intended as a convenience for development. Even tough we
-     * strongly recommend not to change migration scripts once they have been checked into SCM and run, this provides a
-     * way of dealing with this case in a smooth manner. The database will be wiped clean automatically, ensuring that
-     * the next migration will bring you back to the state checked into SCM.</p>
-     * <p><b>Warning ! Do not enable in production !</b></p>
-     */
-    private boolean cleanOnValidationError = false;
-    
-	/**
-	 * Whether to disable clean. (default: {@code false})
-	 * <p>
-	 * This is especially useful for production environments where running clean can
-	 * be quite a career limiting move.
-	 * </p>
-	 * 禁止对数据库进行相关清除操作
-	 */
-	private boolean cleanDisabled = true;
+	private List<FlywayModuleProperties> modules = new ArrayList<>();
 
-	// org.flywaydb.spring.boot.ext.FlywayMigration 参数
+	public void setLocations(List<String> locations) {
+		this.locations = locations;
+	}
+
+	public List<String> getLocations() {
+		return this.locations;
+	}
+
+	public void setCheckLocation(boolean checkLocation) {
+		this.checkLocation = checkLocation;
+	}
+
+	public boolean isCheckLocation() {
+		return this.checkLocation;
+	}
+
+	public boolean isEnabled() {
+		return this.enabled;
+	}
+
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
+
+	public String getUser() {
+		return this.user;
+	}
+
+	public void setUser(String user) {
+		this.user = user;
+	}
+
+	public String getPassword() {
+		return (this.password != null) ? this.password : "";
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public String getUrl() {
+		return this.url;
+	}
+
+	public void setUrl(String url) {
+		this.url = url;
+	}
+
+	public List<String> getInitSqls() {
+		return this.initSqls;
+	}
+
+	public void setInitSqls(List<String> initSqls) {
+		this.initSqls = initSqls;
+	}
+
+	public boolean isCreateDataSource() {
+		return this.url != null || this.user != null;
+	}
 	
-	/**
-	 * 是否使用安全模式：防止数据库因为配置不当导致的数据表被删除. (default: true)
-	 */
-	private boolean safeMode = true;
-	/**
-	 * Whether SQL should be migrated. (default: true)
-	 */
-	private boolean ignoreMigration = true;
-	/**
-	 * Whether SQL should be delete after migrated. (default: true)
-	 */
-	private boolean clearMigrated = false;
-	/**
-	 * Whether SQL should be Rename after migrated. (default: true)
-	 */
-	private boolean renameMigrated = false;
-	/**
-	 * The file name suffix for sql migrations after migrated. (default: .back)
-	 */
-	private String sqlRenameSuffix = ".back";
-
-	public boolean isValidateOnMigrate() {
-		return validateOnMigrate;
+	public List<FlywayModuleProperties> getModules() {
+		return modules;
 	}
 
-	public void setValidateOnMigrate(boolean validateOnMigrate) {
-		this.validateOnMigrate = validateOnMigrate;
-	}
-
-	public boolean isCleanOnValidationError() {
-		return cleanOnValidationError;
-	}
-
-	public void setCleanOnValidationError(boolean cleanOnValidationError) {
-		this.cleanOnValidationError = cleanOnValidationError;
-	}
-
-	public boolean isCleanDisabled() {
-		return cleanDisabled;
-	}
-
-	public void setCleanDisabled(boolean cleanDisabled) {
-		this.cleanDisabled = cleanDisabled;
-	}
-
-	public boolean isSafeMode() {
-		return safeMode;
-	}
-
-	public void setSafeMode(boolean safeMode) {
-		this.safeMode = safeMode;
-	}
-
-	public boolean isIgnoreMigration() {
-		return ignoreMigration;
-	}
-
-	public void setIgnoreMigration(boolean ignoreMigration) {
-		this.ignoreMigration = ignoreMigration;
-	}
-
-	public boolean isClearMigrated() {
-		return clearMigrated;
-	}
-
-	public void setClearMigrated(boolean clearMigrated) {
-		this.clearMigrated = clearMigrated;
-	}
-
-	public boolean isRenameMigrated() {
-		return renameMigrated;
-	}
-
-	public void setRenameMigrated(boolean renameMigrated) {
-		this.renameMigrated = renameMigrated;
-	}
-
-	public String getSqlRenameSuffix() {
-		return sqlRenameSuffix;
-	}
-
-	public void setSqlRenameSuffix(String sqlRenameSuffix) {
-		this.sqlRenameSuffix = sqlRenameSuffix;
-	}
-
-	public Properties toProperties() {
-		Properties properties = new Properties();
-		//notNullAdd(properties, "cleanDisabled", this.cleanDisabled);
-		if(safeMode) {
-			notNullAdd(properties, "cleanOnValidationError", false);
-			notNullAdd(properties, "cleanDisabled", false);
-		} else {
-			notNullAdd(properties, "cleanOnValidationError", this.cleanOnValidationError);
-			notNullAdd(properties, "cleanDisabled", this.cleanDisabled);
-		}
-		notNullAdd(properties, "validateOnMigrate", this.validateOnMigrate);
-		return properties;
-	}
-
-	public void notNullAdd(Properties properties, String key, Object value) {
-		if (value != null) {
-			properties.setProperty("flyway." + key, value.toString());
-		}
+	public void setModules(List<FlywayModuleProperties> modules) {
+		this.modules = modules;
 	}
 
 }
