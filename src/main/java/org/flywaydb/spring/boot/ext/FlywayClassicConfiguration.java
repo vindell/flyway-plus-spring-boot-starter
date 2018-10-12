@@ -50,6 +50,7 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
     	this.module = module;
     	this.setLocationsAsStrings(DEFAULT_FLYWAY_MODULE_PATH);
     	this.setTable(DEFAULT_FLYWAY_MODULE_TABLE);
+    	this.setBaselineOnMigrate(true);
     }
 
     /**
@@ -63,6 +64,7 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
     	this.module = module;
     	this.setLocationsAsStrings(DEFAULT_FLYWAY_MODULE_PATH);
     	this.setTable(DEFAULT_FLYWAY_MODULE_TABLE);
+    	this.setBaselineOnMigrate(true);
     }
 
     /**
@@ -76,6 +78,7 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
         this.module = module;
         this.setLocationsAsStrings(DEFAULT_FLYWAY_MODULE_PATH);
         this.setTable(DEFAULT_FLYWAY_MODULE_TABLE);
+        this.setBaselineOnMigrate(true);
     }
     
     @Override
