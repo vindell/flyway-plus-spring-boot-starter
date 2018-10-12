@@ -18,6 +18,7 @@ import org.flywaydb.spring.boot.ext.FlywayModuleMigrationInitializer;
 import org.flywaydb.spring.boot.ext.FlywayModuleProperties;
 import org.flywaydb.spring.boot.ext.resolver.LocationModuleResolver;
 import org.flywaydb.spring.boot.ext.resolver.LocationVendorResolver;
+import org.flywaydb.spring.boot.ext.resolver.TableModuleResolver;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
@@ -151,6 +152,9 @@ public class FlywayMigrationAutoConfiguration{
 					
 					configuration.setLocationsAsStrings(locations);
 					
+					String table = new TableModuleResolver(properties.getModule()).resolveTable(configuration.getTable());
+					configuration.setTable(table);
+					
 					Flyway flyway = new Flyway(configuration);
 					
 					flyways.add(flyway);
@@ -182,6 +186,9 @@ public class FlywayMigrationAutoConfiguration{
 					checkLocationExists(locations);
 					
 					configuration.setLocationsAsStrings(locations);
+					
+					String table = new TableModuleResolver(configuration.getModule()).resolveTable(configuration.getTable());
+					configuration.setTable(table);
 					
 					Flyway flyway = new Flyway(configuration);
 					
