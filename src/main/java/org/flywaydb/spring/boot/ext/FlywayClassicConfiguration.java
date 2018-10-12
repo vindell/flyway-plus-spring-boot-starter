@@ -48,8 +48,7 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
     public FlywayClassicConfiguration(String module) {
     	super();
     	this.module = module;
-    	this.setLocationsAsStrings(DEFAULT_FLYWAY_MODULE_PATH);
-    	this.setTable(DEFAULT_FLYWAY_MODULE_TABLE);
+    	this.init();
     }
 
     /**
@@ -61,8 +60,7 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
     public FlywayClassicConfiguration(ClassLoader classLoader, String module) {
     	super(classLoader);
     	this.module = module;
-    	this.setLocationsAsStrings(DEFAULT_FLYWAY_MODULE_PATH);
-    	this.setTable(DEFAULT_FLYWAY_MODULE_TABLE);
+    	this.init();
     }
 
     /**
@@ -74,8 +72,7 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
     public FlywayClassicConfiguration(Configuration configuration, String module) {
         super(configuration);
         this.module = module;
-        this.setLocationsAsStrings(DEFAULT_FLYWAY_MODULE_PATH);
-        this.setTable(DEFAULT_FLYWAY_MODULE_TABLE);
+        this.init();
     }
     
     @Override
@@ -85,6 +82,11 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
 		this.locationAsStrings = Arrays.asList(moduleLocations);
     	super.setLocationsAsStrings(moduleLocations);
     }
+    
+    protected void init() {
+    	 this.setLocationsAsStrings(DEFAULT_FLYWAY_MODULE_PATH);
+         this.setTable(DEFAULT_FLYWAY_MODULE_TABLE);
+	}
 
     @Override
     public String getTable() {
