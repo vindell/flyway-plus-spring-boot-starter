@@ -31,6 +31,7 @@ import org.springframework.util.StringUtils;
 public class FlywayModuleProperties {
 	
 	private static final String DEFAULT_FLYWAY_MODULE_PATH = "classpath:db/migration/{module}/{vendor}";
+	private static final String DEFAULT_FLYWAY_MODULE_TABLE = "flyway_{module}_schema_history";
 	
 	/**
      * The module of Sql migrations. (default: module)
@@ -99,12 +100,12 @@ public class FlywayModuleProperties {
     private String[] schemaNames = {};
 
     /**
-     * <p>The name of the schema schema history table that will be used by Flyway. (default: flyway_module_schema_history)</p><p> By default
+     * <p>The name of the schema schema history table that will be used by Flyway. (default: flyway_{module}_schema_history)</p><p> By default
      * (single-schema mode) the schema history table is placed in the default schema for the connection provided by the
      * datasource. </p> <p> When the <i>flyway.schemas</i> property is set (multi-schema mode), the schema history table is
      * placed in the first schema of the list. </p>
      */
-    private String table = "flyway_{module}_schema_history";
+    private String table = DEFAULT_FLYWAY_MODULE_TABLE;
 
     /**
      * The target version up to which Flyway should consider migrations. Migrations with a higher version number will

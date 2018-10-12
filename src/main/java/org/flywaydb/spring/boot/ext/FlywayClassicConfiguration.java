@@ -30,7 +30,8 @@ import org.flywaydb.spring.boot.ext.resolver.LocationModuleResolver;
 public class FlywayClassicConfiguration extends ClassicConfiguration{
 	
 	private static final String DEFAULT_FLYWAY_MODULE_PATH = "classpath:db/migration/{module}/{vendor}";
-	
+	private static final String DEFAULT_FLYWAY_MODULE_TABLE = "flyway_{module}_schema_history";
+    
 	/**
      * The module of Sql migrations. (default: module)
      */
@@ -48,6 +49,7 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
     	super();
     	this.module = module;
     	this.setLocationsAsStrings(DEFAULT_FLYWAY_MODULE_PATH);
+    	this.setTable(DEFAULT_FLYWAY_MODULE_TABLE);
     }
 
     /**
@@ -60,6 +62,7 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
     	super(classLoader);
     	this.module = module;
     	this.setLocationsAsStrings(DEFAULT_FLYWAY_MODULE_PATH);
+    	this.setTable(DEFAULT_FLYWAY_MODULE_TABLE);
     }
 
     /**
@@ -72,6 +75,7 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
         super(configuration);
         this.module = module;
         this.setLocationsAsStrings(DEFAULT_FLYWAY_MODULE_PATH);
+        this.setTable(DEFAULT_FLYWAY_MODULE_TABLE);
     }
     
     @Override
@@ -82,6 +86,11 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
     	super.setLocationsAsStrings(moduleLocations);
     }
 
+    @Override
+    public String getTable() {
+    	return super.getTable();
+    }
+    
 	public String getModule() {
 		return module;
 	}
