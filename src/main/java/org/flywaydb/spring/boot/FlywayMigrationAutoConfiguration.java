@@ -232,7 +232,7 @@ public class FlywayMigrationAutoConfiguration{
 		}
 
 		/**
-		 * Additional configuration to ensure that {@link EntityManagerFactory} beans
+		 * Additional configuration to ensure that EntityManagerFactory beans
 		 * depend on the {@code flywayInitializer} bean.
 		 */
 		@Configuration

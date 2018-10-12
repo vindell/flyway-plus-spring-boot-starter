@@ -45,7 +45,7 @@ public class FlywayModuleMigrationInitializer implements InitializingBean, Order
 
 	/**
 	 * Create a new {@link FlywayModuleMigrationInitializer} instance.
-	 * @param flyway the flyway list instance
+	 * @param flyways the flyway list instance
 	 * @param migrationStrategy the migration strategy or {@code null}
 	 */
 	public FlywayModuleMigrationInitializer(List<Flyway> flyways,
