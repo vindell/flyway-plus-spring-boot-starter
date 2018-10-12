@@ -44,11 +44,13 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
     /**
      * Creates a new default configuration.
      * @param module The module of Sql migrations.
+     * @param baselineDescription The description to tag an existing schema with when executing baseline. (default: &lt;&lt; Flyway Baseline &gt;&gt;)
+     * @param baselineVersion The version to tag an existing schema with when executing baseline. (default: 1)
      */
-    public FlywayClassicConfiguration(String module) {
+    public FlywayClassicConfiguration(String module, String baselineDescription, String baselineVersion) {
     	super();
     	this.module = module;
-    	this.init();
+    	this.init(baselineDescription, baselineVersion);
     }
 
     /**
@@ -56,11 +58,13 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
      *
      * @param classLoader The ClassLoader to use for loading migrations, resolvers, etc from the classpath. (default: Thread.currentThread().getContextClassLoader() )
      * @param module The module of Sql migrations.
+     * @param baselineDescription The description to tag an existing schema with when executing baseline. (default: &lt;&lt; Flyway Baseline &gt;&gt;)
+     * @param baselineVersion The version to tag an existing schema with when executing baseline. (default: 1)
      */
-    public FlywayClassicConfiguration(ClassLoader classLoader, String module) {
+    public FlywayClassicConfiguration(ClassLoader classLoader, String module, String baselineDescription, String baselineVersion) {
     	super(classLoader);
     	this.module = module;
-    	this.init();
+    	this.init(baselineDescription, baselineVersion);
     }
 
     /**
@@ -68,11 +72,13 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
      *
      * @param configuration The configuration to use.
      * @param module The module of Sql migrations.
+     * @param baselineDescription The description to tag an existing schema with when executing baseline. (default: &lt;&lt; Flyway Baseline &gt;&gt;)
+     * @param baselineVersion The version to tag an existing schema with when executing baseline. (default: 1)
      */
-    public FlywayClassicConfiguration(Configuration configuration, String module) {
+    public FlywayClassicConfiguration(Configuration configuration, String module, String baselineDescription, String baselineVersion) {
         super(configuration);
         this.module = module;
-        this.init();
+        this.init(baselineDescription, baselineVersion);
     }
     
     @Override
@@ -83,9 +89,12 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
     	super.setLocationsAsStrings(moduleLocations);
     }
     
-    protected void init() {
+    protected void init(String baselineDescription, String baselineVersion) {
     	 this.setLocationsAsStrings(DEFAULT_FLYWAY_MODULE_PATH);
          this.setTable(DEFAULT_FLYWAY_MODULE_TABLE);
+         this.setBaselineDescription(baselineDescription);
+         this.setBaselineOnMigrate(true);
+         this.setBaselineVersionAsString(baselineVersion);
 	}
 
     @Override

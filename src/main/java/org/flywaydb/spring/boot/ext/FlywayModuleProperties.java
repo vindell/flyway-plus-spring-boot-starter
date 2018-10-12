@@ -610,7 +610,7 @@ public class FlywayModuleProperties {
 	public FlywayClassicConfiguration toConfiguration() {
 		
 		// 构建模块初始化配置
-		FlywayClassicConfiguration configuration = new FlywayClassicConfiguration(this.getModule());
+		FlywayClassicConfiguration configuration = new FlywayClassicConfiguration(this.getModule(), this.getBaselineDescription(), this.getBaselineVersion() );
 		
 		if(StringUtils.hasText(this.getBaselineDescription())) {
 			configuration.setBaselineDescription(this.getBaselineDescription());
