@@ -10,13 +10,11 @@ import javax.sql.DataSource;
 
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.callback.Callback;
-import org.flywaydb.core.api.configuration.ClassicConfiguration;
 import org.flywaydb.core.internal.jdbc.DriverDataSource;
 import org.flywaydb.spring.boot.ext.FlywayClassicConfiguration;
 import org.flywaydb.spring.boot.ext.FlywayMigrationProvider;
 import org.flywaydb.spring.boot.ext.FlywayModuleMigrationInitializer;
 import org.flywaydb.spring.boot.ext.FlywayModuleProperties;
-import org.flywaydb.spring.boot.ext.resolver.LocationModuleResolver;
 import org.flywaydb.spring.boot.ext.resolver.LocationVendorResolver;
 import org.flywaydb.spring.boot.ext.resolver.TableModuleResolver;
 import org.springframework.beans.factory.ObjectProvider;
@@ -121,17 +119,18 @@ public class FlywayMigrationAutoConfiguration{
 				
 				for (FlywayModuleProperties properties : properties.getModules()) {
 					
-					ClassicConfiguration configuration = new ClassicConfiguration();
-					
-					if (this.properties.isCreateDataSource()) {
+					// 根据配置构建ClassicConfiguration对象
+					FlywayClassicConfiguration configuration = properties.toConfiguration();
+					// 判断是否构建数据源
+					if (properties.isCreateDataSource()) {
 						
-						String url = getProperty(this.properties::getUrl, this.dataSourceProperties::getUrl);
-						String user = getProperty(this.properties::getUser, this.dataSourceProperties::getUsername);
-						String password = getProperty(this.properties::getPassword, this.dataSourceProperties::getPassword);
+						String url = getProperty(properties::getUrl, dataSourceProperties::getUrl);
+						String user = getProperty(properties::getUser, dataSourceProperties::getUsername);
+						String password = getProperty(properties::getPassword, dataSourceProperties::getPassword);
 						
 					    ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 						configuration.setDataSource(new DriverDataSource(classLoader, null, url, user, password));
-						configuration.setInitSql(this.properties.getInitSqls() == null ? null : StringUtils.collectionToDelimitedString(this.properties.getInitSqls(), "\n"));
+						configuration.setInitSql(properties.getInitSqls() == null ? null : StringUtils.collectionToDelimitedString(properties.getInitSqls(), "\n"));
 						
 					}
 					else if (this.flywayDataSource != null) {
@@ -143,10 +142,8 @@ public class FlywayMigrationAutoConfiguration{
 					
 					configuration.setCallbacks(this.flywayCallbacks.toArray(new Callback[0]));
 					
-					String[] moduleLocations = new LocationModuleResolver(properties.getModule())
-							.resolveLocations(this.properties.getLocations());
 					String[] locations = new LocationVendorResolver(configuration.getDataSource())
-							.resolveLocations(moduleLocations);
+							.resolveLocations(properties.getLocations());
 					
 					checkLocationExists(locations);
 					
@@ -178,10 +175,8 @@ public class FlywayMigrationAutoConfiguration{
 					
 					configuration.setCallbacks(this.flywayCallbacks.toArray(new Callback[0]));
 					
-					String[] moduleLocations = new LocationModuleResolver(configuration.getModule())
-							.resolveLocations(this.properties.getLocations());
 					String[] locations = new LocationVendorResolver(configuration.getDataSource())
-							.resolveLocations(moduleLocations);
+							.resolveLocations(configuration.getLocationAsStrings());
 					
 					checkLocationExists(locations);
 					

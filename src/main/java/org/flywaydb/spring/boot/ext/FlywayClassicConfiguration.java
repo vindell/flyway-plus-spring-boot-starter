@@ -15,8 +15,13 @@
  */
 package org.flywaydb.spring.boot.ext;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import org.flywaydb.core.api.configuration.ClassicConfiguration;
 import org.flywaydb.core.api.configuration.Configuration;
+import org.flywaydb.spring.boot.ext.resolver.LocationModuleResolver;
 
 /**
  * 增加模块名称参数
@@ -28,7 +33,11 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
      * The module of Sql migrations. (default: module)
      */
 	private String module = "module";
-	
+	/**
+	 * The locations of migrations scripts.
+	 */
+	private List<String> locationAsStrings = new ArrayList<>();
+
     /**
      * Creates a new default configuration.
      * @param module The module of Sql migrations.
@@ -59,9 +68,23 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
         super(configuration);
         this.module = module;
     }
+    
+    @Override
+    public void setLocationsAsStrings(String... locations) {
+		String[] moduleLocations = new LocationModuleResolver(this.getModule())
+				.resolveLocations(locations);
+		this.locationAsStrings = Arrays.asList(moduleLocations);
+    	super.setLocationsAsStrings(moduleLocations);
+    }
 
 	public String getModule() {
 		return module;
 	}
+
+	public List<String> getLocationAsStrings() {
+		return locationAsStrings;
+	}
+	
+	
 	
 }

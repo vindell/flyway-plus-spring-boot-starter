@@ -21,6 +21,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.ArrayUtils;
+import org.springframework.util.StringUtils;
+
 /**
  * Flyway模块化配置：locations和table参数特别需要注意，每个模块不能相同
  * @author 		： <a href="https://github.com/vindell">vindell</a>
@@ -599,6 +602,69 @@ public class FlywayModuleProperties {
 
 	public void setInstalledBy(String installedBy) {
 		this.installedBy = installedBy;
+	}
+	
+	public FlywayClassicConfiguration toConfiguration() {
+		
+		// 构建模块初始化配置
+		FlywayClassicConfiguration configuration = new FlywayClassicConfiguration(this.getModule());
+		
+		if(StringUtils.hasText(this.getBaselineDescription())) {
+			configuration.setBaselineDescription(this.getBaselineDescription());
+		}
+		configuration.setBaselineOnMigrate(this.isBaselineOnMigrate());
+		if(StringUtils.hasText(this.getBaselineVersion())) {
+			configuration.setBaselineVersionAsString(this.getBaselineVersion());
+		}
+		configuration.setCleanDisabled(this.isCleanDisabled());
+		configuration.setCleanOnValidationError(this.isCleanOnValidationError());
+		configuration.setConnectRetries(this.getConnectRetries());
+		if(StringUtils.hasText(this.getEncoding())) {
+			configuration.setEncodingAsString(this.getEncoding());
+		}
+		configuration.setGroup(this.isGroup());
+		configuration.setIgnoreFutureMigrations(this.isIgnoreFutureMigrations());
+		configuration.setIgnoreIgnoredMigrations(this.isIgnoreIgnoredMigrations());
+		configuration.setIgnoreMissingMigrations(this.isIgnoreMissingMigrations());
+		configuration.setIgnorePendingMigrations(this.isIgnorePendingMigrations());
+		if(StringUtils.hasText(this.getInstalledBy())) {
+			configuration.setInstalledBy(this.getInstalledBy());
+		}
+		configuration.setMixed(this.isMixed());
+		configuration.setOutOfOrder(this.isOutOfOrder());
+		
+		if(StringUtils.hasText(this.getPlaceholderPrefix()) && StringUtils.hasText(this.getPlaceholderSuffix())) {
+			configuration.setPlaceholderPrefix(this.getPlaceholderPrefix());
+			configuration.setPlaceholderReplacement(this.isPlaceholderReplacement());
+			configuration.setPlaceholders(this.getPlaceholders());
+			configuration.setPlaceholderSuffix(this.getPlaceholderSuffix());
+		}
+		if(StringUtils.hasText(this.getRepeatableSqlMigrationPrefix())) {
+			configuration.setRepeatableSqlMigrationPrefix(this.getRepeatableSqlMigrationPrefix());
+		}
+		if(ArrayUtils.isNotEmpty(this.getSchemaNames())) {
+			configuration.setSchemas(this.getSchemaNames());
+		}
+		configuration.setSkipDefaultCallbacks(this.isSkipDefaultCallbacks());
+		configuration.setSkipDefaultResolvers(this.isSkipDefaultResolvers());
+		if(StringUtils.hasText(this.getRepeatableSqlMigrationPrefix())) {
+			configuration.setSqlMigrationPrefix(this.getRepeatableSqlMigrationPrefix());
+		}
+		if(StringUtils.hasText(this.getSqlMigrationSeparator())) {
+			configuration.setSqlMigrationSeparator(this.getSqlMigrationSeparator());
+		}
+		if(ArrayUtils.isNotEmpty(this.getSqlMigrationSuffixes())) {
+			configuration.setSqlMigrationSuffixes(this.getSqlMigrationSuffixes());
+		}
+		if(StringUtils.hasText(this.getTable())) {
+			configuration.setTable(this.getTable());
+		}
+		if(StringUtils.hasText(this.getTarget())) {
+			configuration.setTargetAsString(this.getTarget());
+		}
+		configuration.setValidateOnMigrate(this.isValidateOnMigrate());
+		
+		return configuration;
 	}
 	
 }
