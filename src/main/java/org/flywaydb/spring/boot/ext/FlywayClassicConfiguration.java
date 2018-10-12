@@ -28,7 +28,9 @@ import org.flywaydb.spring.boot.ext.resolver.LocationModuleResolver;
  * @author 		： <a href="https://github.com/vindell">vindell</a>
  */
 public class FlywayClassicConfiguration extends ClassicConfiguration{
-
+	
+	private static final String DEFAULT_FLYWAY_MODULE_PATH = "classpath:db/migration/{module}/{vendor}";
+	
 	/**
      * The module of Sql migrations. (default: module)
      */
@@ -44,7 +46,8 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
      */
     public FlywayClassicConfiguration(String module) {
     	super();
-    	 this.module = module;
+    	this.module = module;
+    	this.setLocationsAsStrings(DEFAULT_FLYWAY_MODULE_PATH);
     }
 
     /**
@@ -55,7 +58,8 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
      */
     public FlywayClassicConfiguration(ClassLoader classLoader, String module) {
     	super(classLoader);
-    	 this.module = module;
+    	this.module = module;
+    	this.setLocationsAsStrings(DEFAULT_FLYWAY_MODULE_PATH);
     }
 
     /**
@@ -67,6 +71,7 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
     public FlywayClassicConfiguration(Configuration configuration, String module) {
         super(configuration);
         this.module = module;
+        this.setLocationsAsStrings(DEFAULT_FLYWAY_MODULE_PATH);
     }
     
     @Override

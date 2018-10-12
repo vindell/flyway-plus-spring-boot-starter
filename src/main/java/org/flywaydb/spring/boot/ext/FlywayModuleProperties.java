@@ -30,6 +30,8 @@ import org.springframework.util.StringUtils;
  */
 public class FlywayModuleProperties {
 	
+	private static final String DEFAULT_FLYWAY_MODULE_PATH = "classpath:db/migration/{module}/{vendor}";
+	
 	/**
      * The module of Sql migrations. (default: module)
      */
@@ -39,7 +41,7 @@ public class FlywayModuleProperties {
 	 * The locations of migrations scripts. Can contain the special "{vendor}" placeholder
 	 * to use vendor-specific locations.
 	 */
-	private List<String> locations = new ArrayList<>(Collections.singletonList("classpath:db/migration/module"));
+	private List<String> locations = new ArrayList<>(Collections.singletonList(DEFAULT_FLYWAY_MODULE_PATH));
 
 	/**
 	 * Whether to check that migration scripts location exists.
