@@ -20,21 +20,16 @@ import org.flywaydb.spring.boot.ext.resolver.LocationVendorResolver;
 import org.flywaydb.spring.boot.ext.resolver.TableModuleResolver;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.data.jpa.EntityManagerFactoryDependsOnPostProcessor;
-import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.boot.autoconfigure.flyway.FlywayConfigurationCustomizer;
 import org.springframework.boot.autoconfigure.flyway.FlywayDataSource;
 import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.autoconfigure.jdbc.JdbcOperationsDependsOnPostProcessor;
-import org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration;
-import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.context.properties.PropertyMapper;
 import org.springframework.context.annotation.Bean;
@@ -55,10 +50,18 @@ import org.springframework.util.StringUtils;
 @ConditionalOnClass(Flyway.class)
 @ConditionalOnBean(DataSource.class)
 @ConditionalOnProperty(prefix = FlywayMigrationProperties.PREFIX, name = "enabled", havingValue = "true")
-@AutoConfigureAfter({ DataSourceAutoConfiguration.class,
-	JdbcTemplateAutoConfiguration.class, HibernateJpaAutoConfiguration.class })
+/*@AutoConfigureAfter({ DataSourceAutoConfiguration.class,
+	JdbcTemplateAutoConfiguration.class, HibernateJpaAutoConfiguration.class })*/
 /** 在主体数据库迁移之前完成各个模块的数据库迁移 */
-@AutoConfigureBefore(FlywayAutoConfiguration.class)
+@AutoConfigureBefore(name = {
+	"org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration",
+	"org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration",
+	"org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration",
+	"com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration",
+	"com.alibaba.druid.spring.boot.DruidAutoConfiguration",
+	"com.zaxxer.hikari.spring.boot.HikaricpAutoConfiguration",
+	"org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration"
+})
 public class FlywayMigrationAutoConfiguration{
 	
 	@Bean
@@ -296,7 +299,7 @@ public class FlywayMigrationAutoConfiguration{
 				extends EntityManagerFactoryDependsOnPostProcessor {
 
 			public FlywayInitializerJpaDependencyConfiguration() {
-				super("flywayInitializer", "flywayModuleInitializer");
+				super("flywayModuleInitializer");
 			}
 
 		}
@@ -312,7 +315,7 @@ public class FlywayMigrationAutoConfiguration{
 				extends JdbcOperationsDependsOnPostProcessor {
 
 			public FlywayInitializerJdbcOperationsDependencyConfiguration() {
-				super("flywayInitializer", "flywayModuleInitializer");
+				super("flywayModuleInitializer");
 			}
 
 		}
@@ -330,7 +333,7 @@ public class FlywayMigrationAutoConfiguration{
 			extends EntityManagerFactoryDependsOnPostProcessor {
 
 		public FlywayJpaDependencyConfiguration() {
-			super("flyway", "flyways");
+			super("flyways");
 		}
 
 	}
@@ -346,7 +349,7 @@ public class FlywayMigrationAutoConfiguration{
 			extends JdbcOperationsDependsOnPostProcessor {
 
 		public FlywayJdbcOperationsDependencyConfiguration() {
-			super("flyway", "flyways");
+			super("flyways");
 		}
 
 	}
