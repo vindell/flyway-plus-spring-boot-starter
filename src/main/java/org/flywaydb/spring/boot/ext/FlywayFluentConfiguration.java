@@ -19,15 +19,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.flywaydb.core.api.configuration.ClassicConfiguration;
-import org.flywaydb.core.api.configuration.Configuration;
+import org.flywaydb.core.api.configuration.FluentConfiguration;
 import org.flywaydb.spring.boot.ext.resolver.LocationModuleResolver;
 
 /**
  * 增加模块名称参数
  * @author 		： <a href="https://github.com/vindell">vindell</a>
  */
-public class FlywayClassicConfiguration extends ClassicConfiguration{
+public class FlywayFluentConfiguration extends FluentConfiguration {
 	
 	private static final String DEFAULT_FLYWAY_MODULE_PATH = "classpath:db/migration/{module}/{vendor}";
 	private static final String DEFAULT_FLYWAY_MODULE_TABLE = "flyway_{module}_schema_history";
@@ -47,7 +46,7 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
      * @param baselineDescription The description to tag an existing schema with when executing baseline. (default: &lt;&lt; Flyway Baseline &gt;&gt;)
      * @param baselineVersion The version to tag an existing schema with when executing baseline. (default: 1)
      */
-    public FlywayClassicConfiguration(String module, String baselineDescription, String baselineVersion) {
+    public FlywayFluentConfiguration(String module, String baselineDescription, String baselineVersion) {
     	super();
     	this.module = module;
     	this.init(baselineDescription, baselineVersion);
@@ -61,40 +60,26 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
      * @param baselineDescription The description to tag an existing schema with when executing baseline. (default: &lt;&lt; Flyway Baseline &gt;&gt;)
      * @param baselineVersion The version to tag an existing schema with when executing baseline. (default: 1)
      */
-    public FlywayClassicConfiguration(ClassLoader classLoader, String module, String baselineDescription, String baselineVersion) {
+    public FlywayFluentConfiguration(ClassLoader classLoader, String module, String baselineDescription, String baselineVersion) {
     	super(classLoader);
     	this.module = module;
     	this.init(baselineDescription, baselineVersion);
     }
 
-    /**
-     * Creates a new configuration with the same values as this existing one.
-     *
-     * @param configuration The configuration to use.
-     * @param module The module of Sql migrations.
-     * @param baselineDescription The description to tag an existing schema with when executing baseline. (default: &lt;&lt; Flyway Baseline &gt;&gt;)
-     * @param baselineVersion The version to tag an existing schema with when executing baseline. (default: 1)
-     */
-    public FlywayClassicConfiguration(Configuration configuration, String module, String baselineDescription, String baselineVersion) {
-        super(configuration);
-        this.module = module;
-        this.init(baselineDescription, baselineVersion);
-    }
-    
     @Override
-    public void setLocationsAsStrings(String... locations) {
+    public FluentConfiguration locations(String... locations) {
 		String[] moduleLocations = new LocationModuleResolver(this.getModule())
 				.resolveLocations(locations);
 		this.locationAsStrings = Arrays.asList(moduleLocations);
-    	super.setLocationsAsStrings(moduleLocations);
+    	return super.locations(moduleLocations);
     }
     
     protected void init(String baselineDescription, String baselineVersion) {
-    	 this.setLocationsAsStrings(DEFAULT_FLYWAY_MODULE_PATH);
-         this.setTable(DEFAULT_FLYWAY_MODULE_TABLE);
-         this.setBaselineDescription(baselineDescription);
-         this.setBaselineOnMigrate(true);
-         this.setBaselineVersionAsString(baselineVersion);
+    	this.locations(DEFAULT_FLYWAY_MODULE_PATH)
+    	 	.table(DEFAULT_FLYWAY_MODULE_TABLE)
+    	 	.baselineDescription(baselineDescription)
+    	 	.baselineOnMigrate(true)
+    	 	.baselineVersion(baselineVersion);
 	}
 
     @Override
@@ -109,7 +94,5 @@ public class FlywayClassicConfiguration extends ClassicConfiguration{
 	public List<String> getLocationAsStrings() {
 		return locationAsStrings;
 	}
-	
-	
 	
 }

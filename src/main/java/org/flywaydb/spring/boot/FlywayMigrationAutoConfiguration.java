@@ -2,19 +2,20 @@ package org.flywaydb.spring.boot;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.callback.Callback;
-import org.flywaydb.core.internal.jdbc.DriverDataSource;
-import org.flywaydb.spring.boot.ext.FlywayClassicConfiguration;
+import org.flywaydb.core.api.configuration.FluentConfiguration;
+import org.flywaydb.spring.boot.ext.FlywayFluentConfiguration;
 import org.flywaydb.spring.boot.ext.FlywayMigrationProvider;
-import org.flywaydb.spring.boot.ext.FlywayModuleMigrationInitializer;
-import org.flywaydb.spring.boot.ext.FlywayModuleProperties;
+import org.flywaydb.spring.boot.ext.FlywayModularizedMigrationInitializer;
+import org.flywaydb.spring.boot.ext.FlywayModularizedProperties;
+import org.flywaydb.spring.boot.ext.resolver.LocationModuleResolver;
 import org.flywaydb.spring.boot.ext.resolver.LocationVendorResolver;
 import org.flywaydb.spring.boot.ext.resolver.TableModuleResolver;
 import org.springframework.beans.factory.ObjectProvider;
@@ -23,10 +24,10 @@ import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.data.jpa.EntityManagerFactoryDependsOnPostProcessor;
 import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
+import org.springframework.boot.autoconfigure.flyway.FlywayConfigurationCustomizer;
 import org.springframework.boot.autoconfigure.flyway.FlywayDataSource;
 import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
@@ -35,6 +36,7 @@ import org.springframework.boot.autoconfigure.jdbc.JdbcOperationsDependsOnPostPr
 import org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.context.properties.PropertyMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ResourceLoader;
@@ -71,12 +73,11 @@ public class FlywayMigrationAutoConfiguration{
 	}
 	
 	@Configuration
-	@ConditionalOnMissingBean(Flyway.class)
 	@EnableConfigurationProperties({ DataSourceProperties.class, FlywayMigrationProperties.class })
 	public static class FlywayModuleConfiguration {
 
 		private final FlywayMigrationProperties properties;
-
+		
 		private final DataSourceProperties dataSourceProperties;
 
 		private final ResourceLoader resourceLoader;
@@ -84,29 +85,34 @@ public class FlywayMigrationAutoConfiguration{
 		private final DataSource dataSource;
 
 		private final DataSource flywayDataSource;
-
-		private final FlywayMigrationStrategy migrationStrategy;
 		
-		private List<FlywayClassicConfiguration> migrationConfiguration;
+		private final FlywayMigrationStrategy migrationStrategy;
 
-		private List<Callback> flywayCallbacks;
+		private final List<FlywayConfigurationCustomizer> configurationCustomizers;
 
-		public FlywayModuleConfiguration(FlywayMigrationProperties properties,
+		private final List<Callback> callbacks;
+		
+		private final List<FlywayFluentConfiguration> configurations;
+
+		public FlywayModuleConfiguration(
+				FlywayMigrationProperties properties,
 				DataSourceProperties dataSourceProperties, 
 				ResourceLoader resourceLoader,
-				ObjectProvider<DataSource> dataSource,
+				ObjectProvider<DataSource> dataSource, 
 				@FlywayDataSource ObjectProvider<DataSource> flywayDataSource,
 				ObjectProvider<FlywayMigrationStrategy> migrationStrategy,
-				ObjectProvider<List<FlywayClassicConfiguration>> migrationConfiguration,
-				ObjectProvider<List<Callback>> flywayCallbacks) {
+				ObjectProvider<FlywayConfigurationCustomizer> fluentConfigurationCustomizers,
+				ObjectProvider<Callback> callbacks,
+				ObjectProvider<FlywayFluentConfiguration> configurations) {
 			this.properties = properties;
 			this.dataSourceProperties = dataSourceProperties;
 			this.resourceLoader = resourceLoader;
 			this.dataSource = dataSource.getIfUnique();
 			this.flywayDataSource = flywayDataSource.getIfAvailable();
 			this.migrationStrategy = migrationStrategy.getIfAvailable();
-			this.migrationConfiguration = migrationConfiguration.getIfAvailable(Collections::emptyList);
-			this.flywayCallbacks = flywayCallbacks.getIfAvailable(Collections::emptyList);
+			this.configurationCustomizers = fluentConfigurationCustomizers.orderedStream().collect(Collectors.toList());
+			this.callbacks = callbacks.orderedStream().collect(Collectors.toList());
+			this.configurations = configurations.orderedStream().collect(Collectors.toList());
 		}
 		
 		@Bean("flyways")
@@ -115,95 +121,73 @@ public class FlywayMigrationAutoConfiguration{
 			List<Flyway> flyways = new ArrayList<>();
 			
 			// 基于配置文件的多模块
-			if(!CollectionUtils.isEmpty(properties.getModules())) {
+			if(!CollectionUtils.isEmpty(this.properties.getModules())) {
 				
-				for (FlywayModuleProperties properties : properties.getModules()) {
+				for (FlywayModularizedProperties properties : this.properties.getModules()) {
 					
-					// 根据配置构建ClassicConfiguration对象
-					FlywayClassicConfiguration configuration = properties.toConfiguration();
-					// 判断是否构建数据源
-					if (properties.isCreateDataSource()) {
-						
-						String url = getProperty(properties::getUrl, dataSourceProperties::getUrl);
-						String user = getProperty(properties::getUser, dataSourceProperties::getUsername);
-						String password = getProperty(properties::getPassword, dataSourceProperties::getPassword);
-						
-					    ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-						configuration.setDataSource(new DriverDataSource(classLoader, null, url, user, password));
-						configuration.setInitSql(properties.getInitSqls() == null ? null : StringUtils.collectionToDelimitedString(properties.getInitSqls(), "\n"));
-						
-					}
-					else if (this.flywayDataSource != null) {
-						configuration.setDataSource(this.flywayDataSource);
-					}
-					else {
-						configuration.setDataSource(this.dataSource);
-					}
-					
-					configuration.setCallbacks(this.flywayCallbacks.toArray(new Callback[0]));
-					
-					String[] locations = new LocationVendorResolver(configuration.getDataSource())
-							.resolveLocations(properties.getLocations());
-					
-					checkLocationExists(locations);
-					
-					configuration.setLocationsAsStrings(locations);
-					
-					String table = new TableModuleResolver(properties.getModule()).resolveTable(configuration.getTable());
-					configuration.setTable(table);
-					
-					Flyway flyway = new Flyway(configuration);
-					
-					flyways.add(flyway);
+					FluentConfiguration configuration = new FluentConfiguration();
+					DataSource dataSource = configureDataSource(properties, configuration);
+					checkLocationExists(properties, dataSource);
+					configureProperties(properties, configuration);
+					configureCallbacks(configuration);
+					this.configurationCustomizers.forEach((customizer) -> customizer.customize(configuration));
+					flyways.add(configuration.load());
 				}
 				
 			}
 			
 			// 基于Java配置对象的多模块
-			if(!CollectionUtils.isEmpty(this.migrationConfiguration)) {
+			if(!CollectionUtils.isEmpty(this.configurations)) {
 				
-				for (FlywayClassicConfiguration configuration : this.migrationConfiguration) {
+				for (FlywayFluentConfiguration configuration : this.configurations) {
 					
-					// 没有初始化Datasource,则使用默认的Datasource
-					if( null == configuration.getDataSource()) {
-						if(this.flywayDataSource != null) {
-							configuration.setDataSource(this.flywayDataSource);
-						} else {
-							configuration.setDataSource(this.dataSource);
-						}
-					}
-					
-					configuration.setCallbacks(this.flywayCallbacks.toArray(new Callback[0]));
-					
-					String[] locations = new LocationVendorResolver(configuration.getDataSource())
-							.resolveLocations(configuration.getLocationAsStrings());
-					
-					checkLocationExists(locations);
-					
-					configuration.setLocationsAsStrings(locations);
-					
-					String table = new TableModuleResolver(configuration.getModule()).resolveTable(configuration.getTable());
-					configuration.setTable(table);
-					
-					Flyway flyway = new Flyway(configuration);
-					
-					flyways.add(flyway);
+					configureDataSource(configuration);
+					checkLocationExists(configuration);
+					configureConfiguration(configuration);
+					configureCallbacks(configuration);
+					this.configurationCustomizers.forEach((customizer) -> customizer.customize(configuration));
+					flyways.add(configuration.load());
 				}
 				
 			}
 			
-			
 			return flyways;
 		}
-
-		private String getProperty(Supplier<String> property,
-				Supplier<String> defaultValue) {
-			String value = property.get();
-			return (value != null) ? value : defaultValue.get();
+		
+		private DataSource configureDataSource(FlywayModularizedProperties properties, FluentConfiguration configuration) {
+			if (properties.isCreateDataSource()) {
+				String url = getProperty(properties::getUrl, this.dataSourceProperties::getUrl);
+				String user = getProperty(properties::getUser, this.dataSourceProperties::getUsername);
+				String password = getProperty(properties::getPassword, this.dataSourceProperties::getPassword);
+				configuration.dataSource(url, user, password);
+				if (!CollectionUtils.isEmpty(properties.getInitSqls())) {
+					String initSql = StringUtils.collectionToDelimitedString(properties.getInitSqls(), "\n");
+					configuration.initSql(initSql);
+				}
+			} else if (this.flywayDataSource != null) {
+				configuration.dataSource(this.flywayDataSource);
+			} else {
+				configuration.dataSource(this.dataSource);
+			}
+			return configuration.getDataSource();
 		}
-
-		private void checkLocationExists(String... locations) {
-			if (this.properties.isCheckLocation()) {
+		
+		private DataSource configureDataSource(FluentConfiguration configuration) {
+			// 没有初始化Datasource,则使用默认的Datasource
+			if( null == configuration.getDataSource()) {
+				if (this.flywayDataSource != null) {
+					configuration.dataSource(this.flywayDataSource);
+				} else {
+					configuration.dataSource(this.dataSource);
+				}
+			}
+			return configuration.getDataSource();
+		}
+			
+		private void checkLocationExists(FlywayModularizedProperties properties, DataSource dataSource) {
+			if (properties.isCheckLocation()) {
+				String[] locations = new LocationVendorResolver(dataSource)
+						.resolveLocations(properties.getLocations());
 				Assert.state(locations.length != 0,
 						"Migration script locations not configured");
 				boolean exists = hasAtLeastOneLocation(locations);
@@ -211,6 +195,76 @@ public class FlywayMigrationAutoConfiguration{
 						+ Arrays.asList(locations)
 						+ " (please add migrations or check your Flyway configuration)");
 			}
+		}
+		
+		private void checkLocationExists(FlywayFluentConfiguration configuration) {
+			String[] locations = new LocationVendorResolver(configuration.getDataSource())
+					.resolveLocations(configuration.getLocationAsStrings());
+			Assert.state(locations.length != 0,
+					"Migration script locations not configured");
+			boolean exists = hasAtLeastOneLocation(locations);
+			Assert.state(exists, () -> "Cannot find migrations location in: "
+					+ Arrays.asList(locations)
+					+ " (please add migrations or check your Flyway configuration)");
+		}
+
+		private void configureProperties(FlywayModularizedProperties properties, FluentConfiguration configuration) {
+			PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
+			String[] locations = new LocationVendorResolver(configuration.getDataSource())
+					.resolveLocations(properties.getLocations());
+			locations = new LocationModuleResolver(properties.getModule()).resolveLocations(locations);
+			map.from(locations).to(configuration::locations);
+			map.from(properties.getEncoding()).to(configuration::encoding);
+			map.from(properties.getConnectRetries()).to(configuration::connectRetries);
+			map.from(properties.getSchemas()).as(StringUtils::toStringArray).to(configuration::schemas);
+			String table = new TableModuleResolver(properties.getModule()).resolveTable(properties.getTable());
+			map.from(table).to(configuration::table);
+			map.from(properties.getBaselineDescription()).to(configuration::baselineDescription);
+			map.from(properties.getBaselineVersion()).to(configuration::baselineVersion);
+			map.from(properties.getInstalledBy()).to(configuration::installedBy);
+			map.from(properties.getPlaceholders()).to(configuration::placeholders);
+			map.from(properties.getPlaceholderPrefix()).to(configuration::placeholderPrefix);
+			map.from(properties.getPlaceholderSuffix()).to(configuration::placeholderSuffix);
+			map.from(properties.isPlaceholderReplacement()).to(configuration::placeholderReplacement);
+			map.from(properties.getSqlMigrationPrefix()).to(configuration::sqlMigrationPrefix);
+			map.from(properties.getSqlMigrationSuffixes()).as(StringUtils::toStringArray).to(configuration::sqlMigrationSuffixes);
+			map.from(properties.getSqlMigrationSeparator()).to(configuration::sqlMigrationSeparator);
+			map.from(properties.getRepeatableSqlMigrationPrefix()).to(configuration::repeatableSqlMigrationPrefix);
+			map.from(properties.getTarget()).to(configuration::target);
+			map.from(properties.isBaselineOnMigrate()).to(configuration::baselineOnMigrate);
+			map.from(properties.isCleanDisabled()).to(configuration::cleanDisabled);
+			map.from(properties.isCleanOnValidationError()).to(configuration::cleanOnValidationError);
+			map.from(properties.isGroup()).to(configuration::group);
+			map.from(properties.isIgnoreMissingMigrations()).to(configuration::ignoreMissingMigrations);
+			map.from(properties.isIgnoreIgnoredMigrations()).to(configuration::ignoreIgnoredMigrations);
+			map.from(properties.isIgnorePendingMigrations()).to(configuration::ignorePendingMigrations);
+			map.from(properties.isIgnoreFutureMigrations()).to(configuration::ignoreFutureMigrations);
+			map.from(properties.isMixed()).to(configuration::mixed);
+			map.from(properties.isOutOfOrder()).to(configuration::outOfOrder);
+			map.from(properties.isSkipDefaultCallbacks()).to(configuration::skipDefaultCallbacks);
+			map.from(properties.isSkipDefaultResolvers()).to(configuration::skipDefaultResolvers);
+			map.from(properties.isValidateOnMigrate()).to(configuration::validateOnMigrate);
+		}
+
+		private void configureConfiguration(FlywayFluentConfiguration configuration) {
+
+			String[] locations = new LocationVendorResolver(configuration.getDataSource())
+					.resolveLocations(configuration.getLocationAsStrings());
+			configuration.locations(locations);
+			String table = new TableModuleResolver(configuration.getModule()).resolveTable(configuration.getTable());
+			configuration.table(table);
+			
+		}
+		
+		private void configureCallbacks(FluentConfiguration configuration) {
+			if (!this.callbacks.isEmpty()) {
+				configuration.callbacks(this.callbacks.toArray(new Callback[0]));
+			}
+		}
+
+		private String getProperty(Supplier<String> property, Supplier<String> defaultValue) {
+			String value = property.get();
+			return (value != null) ? value : defaultValue.get();
 		}
 
 		private boolean hasAtLeastOneLocation(String... locations) {
@@ -225,10 +279,10 @@ public class FlywayMigrationAutoConfiguration{
 		private String normalizePrefix(String location) {
 			return location.replace("filesystem:", "file:");
 		}
-
+		
 		@Bean
-		public FlywayModuleMigrationInitializer flywayModuleInitializer(@Qualifier("flyways") List<Flyway> flyways) {
-			return new FlywayModuleMigrationInitializer(flyways, this.migrationStrategy);
+		public FlywayModularizedMigrationInitializer flywayModuleInitializer(@Qualifier("flyways") List<Flyway> flyways) {
+			return new FlywayModularizedMigrationInitializer(flyways, this.migrationStrategy);
 		}
 
 		/**
@@ -261,6 +315,38 @@ public class FlywayMigrationAutoConfiguration{
 				super("flywayInitializer", "flywayModuleInitializer");
 			}
 
+		}
+
+	}
+	
+	/**
+	 * Additional configuration to ensure that {@link EntityManagerFactory} beans depend
+	 * on the {@code flyway} bean.
+	 */
+	@Configuration
+	@ConditionalOnClass(LocalContainerEntityManagerFactoryBean.class)
+	@ConditionalOnBean(AbstractEntityManagerFactoryBean.class)
+	protected static class FlywayJpaDependencyConfiguration
+			extends EntityManagerFactoryDependsOnPostProcessor {
+
+		public FlywayJpaDependencyConfiguration() {
+			super("flyway", "flyways");
+		}
+
+	}
+
+	/**
+	 * Additional configuration to ensure that {@link JdbcOperations} beans depend on the
+	 * {@code flyway} bean.
+	 */
+	@Configuration
+	@ConditionalOnClass(JdbcOperations.class)
+	@ConditionalOnBean(JdbcOperations.class)
+	protected static class FlywayJdbcOperationsDependencyConfiguration
+			extends JdbcOperationsDependsOnPostProcessor {
+
+		public FlywayJdbcOperationsDependencyConfiguration() {
+			super("flyway", "flyways");
 		}
 
 	}

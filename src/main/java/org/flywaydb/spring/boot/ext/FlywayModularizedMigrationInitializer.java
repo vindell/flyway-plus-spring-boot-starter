@@ -27,7 +27,7 @@ import org.springframework.util.Assert;
  * TODO
  * @author 		： <a href="https://github.com/vindell">vindell</a>
  */
-public class FlywayModuleMigrationInitializer implements InitializingBean, Ordered {
+public class FlywayModularizedMigrationInitializer implements InitializingBean, Ordered {
 
 	private final List<Flyway> flyways;
 
@@ -36,21 +36,21 @@ public class FlywayModuleMigrationInitializer implements InitializingBean, Order
 	private int order = 0;
 
 	/**
-	 * Create a new {@link FlywayModuleMigrationInitializer} instance.
+	 * Create a new {@link FlywayModularizedMigrationInitializer} instance.
 	 * @param flyways the flyway list instance
 	 */
-	public FlywayModuleMigrationInitializer(List<Flyway> flyways) {
+	public FlywayModularizedMigrationInitializer(List<Flyway> flyways) {
 		this(flyways, null);
 	}
 
 	/**
-	 * Create a new {@link FlywayModuleMigrationInitializer} instance.
+	 * Create a new {@link FlywayModularizedMigrationInitializer} instance.
 	 * @param flyways the flyway list instance
 	 * @param migrationStrategy the migration strategy or {@code null}
 	 */
-	public FlywayModuleMigrationInitializer(List<Flyway> flyways,
+	public FlywayModularizedMigrationInitializer(List<Flyway> flyways,
 			FlywayMigrationStrategy migrationStrategy) {
-		Assert.notNull(flyways, "Flyway must not be null");
+		Assert.notNull(flyways, "Flyways must not be null");
 		this.flyways = flyways;
 		this.migrationStrategy = migrationStrategy;
 	}

@@ -21,14 +21,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang3.ArrayUtils;
-import org.springframework.util.StringUtils;
-
 /**
  * Flyway模块化配置：locations和table参数特别需要注意，每个模块不能相同
  * @author 		： <a href="https://github.com/vindell">vindell</a>
  */
-public class FlywayModuleProperties {
+public class FlywayModularizedProperties {
 	
 	private static final String DEFAULT_FLYWAY_MODULE_PATH = "classpath:db/migration/{module}/{vendor}";
 	private static final String DEFAULT_FLYWAY_MODULE_TABLE = "flyway_{module}_schema_history";
@@ -76,6 +73,11 @@ public class FlywayModuleProperties {
      * (default: 0)
      */
     private int connectRetries;
+
+	/**
+	 * Scheme names managed by Flyway (case-sensitive).
+	 */
+	private List<String> schemas = new ArrayList<>();
 
     /**
 	 * SQL statements to execute to initialize a connection immediately after obtaining
@@ -165,7 +167,7 @@ public class FlywayModuleProperties {
      * <p>Multiple suffixes (like .sql,.pkg,.pkb) can be specified for easier compatibility with other tools such as
      * editors with specific file associations.</p>
      */
-    private String[] sqlMigrationSuffixes = {".sql"};
+	private List<String> sqlMigrationSuffixes = new ArrayList<>(Collections.singleton(".sql"));
 
     /**
      * Ignore missing migrations when reading the schema history table. These are migrations that were performed by an
@@ -370,6 +372,14 @@ public class FlywayModuleProperties {
 	public void setConnectRetries(int connectRetries) {
 		this.connectRetries = connectRetries;
 	}
+	
+	public List<String> getSchemas() {
+		return schemas;
+	}
+
+	public void setSchemas(List<String> schemas) {
+		this.schemas = schemas;
+	}
 
 	public List<String> getInitSqls() {
 		return initSqls;
@@ -471,11 +481,11 @@ public class FlywayModuleProperties {
 		this.sqlMigrationSeparator = sqlMigrationSeparator;
 	}
 
-	public String[] getSqlMigrationSuffixes() {
+	public List<String> getSqlMigrationSuffixes() {
 		return sqlMigrationSuffixes;
 	}
 
-	public void setSqlMigrationSuffixes(String[] sqlMigrationSuffixes) {
+	public void setSqlMigrationSuffixes(List<String> sqlMigrationSuffixes) {
 		this.sqlMigrationSuffixes = sqlMigrationSuffixes;
 	}
 
@@ -606,68 +616,4 @@ public class FlywayModuleProperties {
 	public void setInstalledBy(String installedBy) {
 		this.installedBy = installedBy;
 	}
-	
-	public FlywayClassicConfiguration toConfiguration() {
-		
-		// 构建模块初始化配置
-		FlywayClassicConfiguration configuration = new FlywayClassicConfiguration(this.getModule(), this.getBaselineDescription(), this.getBaselineVersion() );
-		
-		if(StringUtils.hasText(this.getBaselineDescription())) {
-			configuration.setBaselineDescription(this.getBaselineDescription());
-		}
-		configuration.setBaselineOnMigrate(this.isBaselineOnMigrate());
-		if(StringUtils.hasText(this.getBaselineVersion())) {
-			configuration.setBaselineVersionAsString(this.getBaselineVersion());
-		}
-		configuration.setCleanDisabled(this.isCleanDisabled());
-		configuration.setCleanOnValidationError(this.isCleanOnValidationError());
-		configuration.setConnectRetries(this.getConnectRetries());
-		if(StringUtils.hasText(this.getEncoding())) {
-			configuration.setEncodingAsString(this.getEncoding());
-		}
-		configuration.setGroup(this.isGroup());
-		configuration.setIgnoreFutureMigrations(this.isIgnoreFutureMigrations());
-		configuration.setIgnoreIgnoredMigrations(this.isIgnoreIgnoredMigrations());
-		configuration.setIgnoreMissingMigrations(this.isIgnoreMissingMigrations());
-		configuration.setIgnorePendingMigrations(this.isIgnorePendingMigrations());
-		if(StringUtils.hasText(this.getInstalledBy())) {
-			configuration.setInstalledBy(this.getInstalledBy());
-		}
-		configuration.setMixed(this.isMixed());
-		configuration.setOutOfOrder(this.isOutOfOrder());
-		
-		if(StringUtils.hasText(this.getPlaceholderPrefix()) && StringUtils.hasText(this.getPlaceholderSuffix())) {
-			configuration.setPlaceholderPrefix(this.getPlaceholderPrefix());
-			configuration.setPlaceholderReplacement(this.isPlaceholderReplacement());
-			configuration.setPlaceholders(this.getPlaceholders());
-			configuration.setPlaceholderSuffix(this.getPlaceholderSuffix());
-		}
-		if(StringUtils.hasText(this.getRepeatableSqlMigrationPrefix())) {
-			configuration.setRepeatableSqlMigrationPrefix(this.getRepeatableSqlMigrationPrefix());
-		}
-		if(ArrayUtils.isNotEmpty(this.getSchemaNames())) {
-			configuration.setSchemas(this.getSchemaNames());
-		}
-		configuration.setSkipDefaultCallbacks(this.isSkipDefaultCallbacks());
-		configuration.setSkipDefaultResolvers(this.isSkipDefaultResolvers());
-		if(StringUtils.hasText(this.getRepeatableSqlMigrationPrefix())) {
-			configuration.setSqlMigrationPrefix(this.getRepeatableSqlMigrationPrefix());
-		}
-		if(StringUtils.hasText(this.getSqlMigrationSeparator())) {
-			configuration.setSqlMigrationSeparator(this.getSqlMigrationSeparator());
-		}
-		if(ArrayUtils.isNotEmpty(this.getSqlMigrationSuffixes())) {
-			configuration.setSqlMigrationSuffixes(this.getSqlMigrationSuffixes());
-		}
-		if(StringUtils.hasText(this.getTable())) {
-			configuration.setTable(this.getTable());
-		}
-		if(StringUtils.hasText(this.getTarget())) {
-			configuration.setTargetAsString(this.getTarget());
-		}
-		configuration.setValidateOnMigrate(this.isValidateOnMigrate());
-		
-		return configuration;
-	}
-	
 }
