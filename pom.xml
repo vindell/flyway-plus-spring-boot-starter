@@ -371,7 +371,7 @@
         <maven-resources-plugin.version>3.0.2</maven-resources-plugin.version>
         <maven-surefire-plugin.vertsion>2.21.0</maven-surefire-plugin.vertsion>
 		<maven-nexus-staging-plugin.version>1.6.8</maven-nexus-staging-plugin.version>
-		<flyway.version>5.2.1</flyway.version>
+		<flyway.version>5.2.4</flyway.version>
 		<!-- <flyway.version>4.2.0</flyway.version> : 5.x 版本不支持 Oracle 10g、11g -->
 	</properties>
 
