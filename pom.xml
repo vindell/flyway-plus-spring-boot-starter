@@ -11,7 +11,7 @@
 	</parent>
 
 	<groupId>com.github.vindell</groupId>
-	<artifactId>spring-boot-starter-flyway-plus</artifactId>
+	<artifactId>spring-boot-starter-flyway-plus4.x</artifactId>
 	<description>Spring Boot Starter For Flyway</description>
 	<version>1.0.4-SNAPSHOT</version>
 	<name>${project.groupId}:${project.artifactId}</name>
@@ -371,8 +371,8 @@
         <maven-resources-plugin.version>3.0.2</maven-resources-plugin.version>
         <maven-surefire-plugin.vertsion>2.21.0</maven-surefire-plugin.vertsion>
 		<maven-nexus-staging-plugin.version>1.6.8</maven-nexus-staging-plugin.version>
-		<flyway.version>5.2.1</flyway.version>
-		<!-- <flyway.version>4.2.0</flyway.version> : 5.x 版本不支持 Oracle 10g、11g -->
+		<flyway.version>5.2.0</flyway.version> <!-- 5.x 版本不支持 Oracle 10g、11g -->
+		<!-- <flyway.version>4.2.0</flyway.version>  -->
 	</properties>
 
 	<dependencies>
