@@ -11,9 +11,9 @@
 	</parent>
 
 	<groupId>com.github.vindell</groupId>
-	<artifactId>spring-boot-starter-flyway-plus4.x</artifactId>
+	<artifactId>spring-boot-starter-flyway-plus</artifactId>
 	<description>Spring Boot Starter For Flyway</description>
-	<version>1.0.5-SNAPSHOT</version>
+	<version>1.0.4.RELEASE</version>
 	<name>${project.groupId}:${project.artifactId}</name>
 	<url>https://github.com/vindell/${project.artifactId}</url>
 	<packaging>jar</packaging>
