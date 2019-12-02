@@ -1,5 +1,5 @@
-# spring-boot-starter-flyway-plus
-flyway starter for spring boot
+# flyway-plus-spring-boot-starter
+Spring Boot Starter For Flyway
 
 ### 说明
 
