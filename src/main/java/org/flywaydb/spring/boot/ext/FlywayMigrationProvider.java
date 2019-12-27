@@ -9,7 +9,7 @@ import org.springframework.context.ApplicationEventPublisherAware;
 
 /**
  * TODO
- * @author 		： <a href="https://github.com/vindell">vindell</a>
+ * @author 		： <a href="https://github.com/hiwepy">hiwepy</a>
  */
 public class FlywayMigrationProvider implements FlywayMigrationStrategy, ApplicationEventPublisherAware {
 	

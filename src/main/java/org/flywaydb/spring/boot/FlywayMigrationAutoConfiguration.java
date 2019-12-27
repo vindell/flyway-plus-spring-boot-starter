@@ -44,7 +44,7 @@ import org.springframework.util.StringUtils;
 
 /**
  * 扩展Flyway实现，解决使用Druid数据源时执行SQL权限问题（Druid安全机制导致）
- * @author 		： <a href="https://github.com/vindell">vindell</a>
+ * @author 		： <a href="https://github.com/hiwepy">hiwepy</a>
  */
 @Configuration
 @ConditionalOnClass(Flyway.class)
