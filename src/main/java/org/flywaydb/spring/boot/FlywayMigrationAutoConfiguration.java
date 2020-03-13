@@ -222,6 +222,8 @@ public class FlywayMigrationAutoConfiguration{
 			map.from(properties.getSchemas()).as(StringUtils::toStringArray).to(configuration::schemas);
 			String table = new TableModuleResolver(properties.getModule()).resolveTable(properties.getTable());
 			map.from(table).to(configuration::table);
+			// No method reference for compatibility with Flyway 5.x
+			map.from(properties.getTablespace()).whenNonNull().to((tablespace) -> configuration.tablespace(tablespace));
 			map.from(properties.getBaselineDescription()).to(configuration::baselineDescription);
 			map.from(properties.getBaselineVersion()).to(configuration::baselineVersion);
 			map.from(properties.getInstalledBy()).to(configuration::installedBy);
@@ -230,7 +232,8 @@ public class FlywayMigrationAutoConfiguration{
 			map.from(properties.getPlaceholderSuffix()).to(configuration::placeholderSuffix);
 			map.from(properties.isPlaceholderReplacement()).to(configuration::placeholderReplacement);
 			map.from(properties.getSqlMigrationPrefix()).to(configuration::sqlMigrationPrefix);
-			map.from(properties.getSqlMigrationSuffixes()).as(StringUtils::toStringArray).to(configuration::sqlMigrationSuffixes);
+			map.from(properties.getSqlMigrationSuffixes()).as(StringUtils::toStringArray)
+					.to(configuration::sqlMigrationSuffixes);
 			map.from(properties.getSqlMigrationSeparator()).to(configuration::sqlMigrationSeparator);
 			map.from(properties.getRepeatableSqlMigrationPrefix()).to(configuration::repeatableSqlMigrationPrefix);
 			map.from(properties.getTarget()).to(configuration::target);
@@ -247,6 +250,17 @@ public class FlywayMigrationAutoConfiguration{
 			map.from(properties.isSkipDefaultCallbacks()).to(configuration::skipDefaultCallbacks);
 			map.from(properties.isSkipDefaultResolvers()).to(configuration::skipDefaultResolvers);
 			map.from(properties.isValidateOnMigrate()).to(configuration::validateOnMigrate);
+			// Pro properties
+			map.from(properties.getBatch()).whenNonNull().to(configuration::batch);
+			map.from(properties.getDryRunOutput()).whenNonNull().to(configuration::dryRunOutput);
+			map.from(properties.getErrorOverrides()).whenNonNull().to(configuration::errorOverrides);
+			map.from(properties.getLicenseKey()).whenNonNull().to(configuration::licenseKey);
+			map.from(properties.getOracleSqlplus()).whenNonNull().to(configuration::oracleSqlplus);
+			// No method reference for compatibility with Flyway 5.x
+			map.from(properties.getOracleSqlplusWarn()).whenNonNull()
+					.to((oracleSqlplusWarn) -> configuration.oracleSqlplusWarn(oracleSqlplusWarn));
+			map.from(properties.getStream()).whenNonNull().to(configuration::stream);
+			map.from(properties.getUndoSqlMigrationPrefix()).whenNonNull().to(configuration::undoSqlMigrationPrefix);
 		}
 
 		private void configureConfiguration(FlywayFluentConfiguration configuration) {
