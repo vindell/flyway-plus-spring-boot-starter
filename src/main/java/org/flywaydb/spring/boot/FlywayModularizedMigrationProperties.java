@@ -6,8 +6,8 @@ import java.util.List;
 import org.flywaydb.spring.boot.ext.FlywayModularizedProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(FlywayMigrationProperties.PREFIX)
-public class FlywayMigrationProperties {
+@ConfigurationProperties(FlywayModularizedMigrationProperties.PREFIX)
+public class FlywayModularizedMigrationProperties {
 
 	public static final String PREFIX = "spring.flyway";
 

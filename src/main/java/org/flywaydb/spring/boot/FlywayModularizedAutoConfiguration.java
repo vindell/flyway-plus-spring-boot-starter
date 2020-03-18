@@ -23,7 +23,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.data.jpa.EntityManagerFactoryDependsOnPostProcessor;
 import org.springframework.boot.autoconfigure.flyway.FlywayConfigurationCustomizer;
 import org.springframework.boot.autoconfigure.flyway.FlywayDataSource;
@@ -48,10 +47,7 @@ import org.springframework.util.StringUtils;
  */
 @Configuration
 @ConditionalOnClass(Flyway.class)
-@ConditionalOnBean(DataSource.class)
-@ConditionalOnProperty(prefix = FlywayMigrationProperties.PREFIX, name = "enabled", havingValue = "true")
-/*@AutoConfigureAfter({ DataSourceAutoConfiguration.class,
-	JdbcTemplateAutoConfiguration.class, HibernateJpaAutoConfiguration.class })*/
+@ConditionalOnBean({DataSource.class, FlywayFluentConfiguration.class })
 /** 在主体数据库迁移之前完成各个模块的数据库迁移 */
 @AutoConfigureBefore(name = {
 	"org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration",
@@ -62,7 +58,7 @@ import org.springframework.util.StringUtils;
 	"com.zaxxer.hikari.spring.boot.HikaricpAutoConfiguration",
 	"org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration"
 })
-public class FlywayMigrationAutoConfiguration{
+public class FlywayModularizedAutoConfiguration{
 	
 	@Bean
 	@FlywayDataSource
@@ -76,10 +72,10 @@ public class FlywayMigrationAutoConfiguration{
 	}
 	
 	@Configuration
-	@EnableConfigurationProperties({ DataSourceProperties.class, FlywayMigrationProperties.class })
+	@EnableConfigurationProperties({ DataSourceProperties.class, FlywayModularizedMigrationProperties.class })
 	public static class FlywayModuleConfiguration {
 
-		private final FlywayMigrationProperties properties;
+		private final FlywayModularizedMigrationProperties properties;
 		
 		private final DataSourceProperties dataSourceProperties;
 
@@ -89,21 +85,18 @@ public class FlywayMigrationAutoConfiguration{
 
 		private final DataSource flywayDataSource;
 		
-		private final FlywayMigrationStrategy migrationStrategy;
-
 		private final List<FlywayConfigurationCustomizer> configurationCustomizers;
 
-		private final List<Callback> callbacks;
+		private final ObjectProvider<Callback> callbacks;
 		
 		private final List<FlywayFluentConfiguration> configurations;
 
 		public FlywayModuleConfiguration(
-				FlywayMigrationProperties properties,
+				FlywayModularizedMigrationProperties properties,
 				DataSourceProperties dataSourceProperties, 
 				ResourceLoader resourceLoader,
 				ObjectProvider<DataSource> dataSource, 
 				@FlywayDataSource ObjectProvider<DataSource> flywayDataSource,
-				ObjectProvider<FlywayMigrationStrategy> migrationStrategy,
 				ObjectProvider<FlywayConfigurationCustomizer> fluentConfigurationCustomizers,
 				ObjectProvider<Callback> callbacks,
 				ObjectProvider<FlywayFluentConfiguration> configurations) {
@@ -112,9 +105,8 @@ public class FlywayMigrationAutoConfiguration{
 			this.resourceLoader = resourceLoader;
 			this.dataSource = dataSource.getIfUnique();
 			this.flywayDataSource = flywayDataSource.getIfAvailable();
-			this.migrationStrategy = migrationStrategy.getIfAvailable();
 			this.configurationCustomizers = fluentConfigurationCustomizers.orderedStream().collect(Collectors.toList());
-			this.callbacks = callbacks.orderedStream().collect(Collectors.toList());
+			this.callbacks = callbacks;
 			this.configurations = configurations.orderedStream().collect(Collectors.toList());
 		}
 		
@@ -132,7 +124,10 @@ public class FlywayMigrationAutoConfiguration{
 					DataSource dataSource = configureDataSource(properties, configuration);
 					checkLocationExists(properties, dataSource);
 					configureProperties(properties, configuration);
-					configureCallbacks(configuration);
+					
+					List<Callback> orderedCallbacks = callbacks.orderedStream().collect(Collectors.toList());
+					configureCallbacks(configuration, orderedCallbacks);
+					
 					this.configurationCustomizers.forEach((customizer) -> customizer.customize(configuration));
 					flyways.add(configuration.load());
 				}
@@ -147,7 +142,8 @@ public class FlywayMigrationAutoConfiguration{
 					configureDataSource(configuration);
 					checkLocationExists(configuration);
 					configureConfiguration(configuration);
-					configureCallbacks(configuration);
+					List<Callback> orderedCallbacks = callbacks.orderedStream().collect(Collectors.toList());
+					configureCallbacks(configuration, orderedCallbacks);
 					this.configurationCustomizers.forEach((customizer) -> customizer.customize(configuration));
 					flyways.add(configuration.load());
 				}
@@ -273,12 +269,12 @@ public class FlywayMigrationAutoConfiguration{
 			
 		}
 		
-		private void configureCallbacks(FluentConfiguration configuration) {
-			if (!this.callbacks.isEmpty()) {
-				configuration.callbacks(this.callbacks.toArray(new Callback[0]));
+		private void configureCallbacks(FluentConfiguration configuration, List<Callback> callbacks) {
+			if (!callbacks.isEmpty()) {
+				configuration.callbacks(callbacks.toArray(new Callback[0]));
 			}
 		}
-
+		
 		private String getProperty(Supplier<String> property, Supplier<String> defaultValue) {
 			String value = property.get();
 			return (value != null) ? value : defaultValue.get();
@@ -298,8 +294,9 @@ public class FlywayMigrationAutoConfiguration{
 		}
 		
 		@Bean
-		public FlywayModularizedMigrationInitializer flywayModuleInitializer(@Qualifier("flyways") List<Flyway> flyways) {
-			return new FlywayModularizedMigrationInitializer(flyways, this.migrationStrategy);
+		public FlywayModularizedMigrationInitializer flywayModuleInitializer(@Qualifier("flyways") List<Flyway> flyways,
+				ObjectProvider<FlywayMigrationStrategy> migrationStrategy) {
+			return new FlywayModularizedMigrationInitializer(flyways, migrationStrategy.getIfAvailable());
 		}
 
 		/**
