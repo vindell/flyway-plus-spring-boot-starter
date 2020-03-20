@@ -48,7 +48,7 @@ import org.springframework.util.StringUtils;
  */
 @Configuration
 @ConditionalOnClass(Flyway.class)
-@ConditionalOnBean({DataSource.class, FlywayFluentConfiguration.class })
+@ConditionalOnBean({DataSource.class})
 @ConditionalOnProperty(prefix = "spring.flyway", name = "moduleable", havingValue = "true")
 /** 在主体数据库迁移之前完成各个模块的数据库迁移 */
 @AutoConfigureBefore(name = {
