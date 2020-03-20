@@ -218,6 +218,7 @@ public class FlywayModularizedAutoConfiguration{
 					.resolveLocations(properties.getLocations());
 			locations = new LocationModuleResolver(properties.getModule()).resolveLocations(locations);
 			map.from(locations).to(configuration::locations);
+			properties.setLocations(Arrays.asList(locations));
 			map.from(properties.getEncoding()).to(configuration::encoding);
 			map.from(properties.getConnectRetries()).to(configuration::connectRetries);
 			map.from(properties.getSchemas()).as(StringUtils::toStringArray).to(configuration::schemas);
