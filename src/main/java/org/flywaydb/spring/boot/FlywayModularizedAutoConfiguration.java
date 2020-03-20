@@ -125,8 +125,8 @@ public class FlywayModularizedAutoConfiguration{
 					
 					FluentConfiguration configuration = new FluentConfiguration();
 					DataSource dataSource = configureDataSource(properties, configuration);
-					checkLocationExists(properties, dataSource);
 					configureProperties(properties, configuration);
+					checkLocationExists(properties, dataSource);
 					
 					List<Callback> orderedCallbacks = callbacks.orderedStream().collect(Collectors.toList());
 					configureCallbacks(configuration, orderedCallbacks);
@@ -145,8 +145,10 @@ public class FlywayModularizedAutoConfiguration{
 					configureDataSource(configuration);
 					checkLocationExists(configuration);
 					configureConfiguration(configuration);
+					
 					List<Callback> orderedCallbacks = callbacks.orderedStream().collect(Collectors.toList());
 					configureCallbacks(configuration, orderedCallbacks);
+					
 					this.configurationCustomizers.forEach((customizer) -> customizer.customize(configuration));
 					flyways.add(configuration.load());
 				}
