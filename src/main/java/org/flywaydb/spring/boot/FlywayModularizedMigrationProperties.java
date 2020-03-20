@@ -13,12 +13,22 @@ public class FlywayModularizedMigrationProperties {
 
 	private List<FlywayModularizedProperties> modules = new ArrayList<>();
 	
+	private boolean moduleable = false;
+	
 	public List<FlywayModularizedProperties> getModules() {
 		return modules;
 	}
 
 	public void setModules(List<FlywayModularizedProperties> modules) {
 		this.modules = modules;
+	}
+
+	public boolean isModuleable() {
+		return moduleable;
+	}
+
+	public void setModuleable(boolean moduleable) {
+		this.moduleable = moduleable;
 	}
 
 }

@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.data.jpa.EntityManagerFactoryDependsOnPostProcessor;
 import org.springframework.boot.autoconfigure.flyway.FlywayConfigurationCustomizer;
 import org.springframework.boot.autoconfigure.flyway.FlywayDataSource;
@@ -48,6 +49,7 @@ import org.springframework.util.StringUtils;
 @Configuration
 @ConditionalOnClass(Flyway.class)
 @ConditionalOnBean({DataSource.class, FlywayFluentConfiguration.class })
+@ConditionalOnProperty(prefix = "spring.flyway.moduleable", name = "enabled", havingValue = "true")
 /** 在主体数据库迁移之前完成各个模块的数据库迁移 */
 @AutoConfigureBefore(name = {
 	"org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration",
@@ -58,6 +60,7 @@ import org.springframework.util.StringUtils;
 	"com.zaxxer.hikari.spring.boot.HikaricpAutoConfiguration",
 	"org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration"
 })
+@EnableConfigurationProperties({ FlywayModularizedMigrationProperties.class })
 public class FlywayModularizedAutoConfiguration{
 	
 	@Bean
