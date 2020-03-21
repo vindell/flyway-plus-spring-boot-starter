@@ -2,19 +2,24 @@ package org.flywaydb.spring.boot;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.MigrationVersion;
 import org.flywaydb.core.api.callback.Callback;
 import org.flywaydb.core.api.configuration.FluentConfiguration;
 import org.flywaydb.spring.boot.ext.FlywayFluentConfiguration;
 import org.flywaydb.spring.boot.ext.FlywayMigrationProvider;
 import org.flywaydb.spring.boot.ext.FlywayModularizedMigrationInitializer;
 import org.flywaydb.spring.boot.ext.FlywayModularizedProperties;
+import org.flywaydb.spring.boot.ext.FlywayModularizedSchemaManagementProvider;
 import org.flywaydb.spring.boot.ext.resolver.LocationModuleResolver;
 import org.flywaydb.spring.boot.ext.resolver.LocationVendorResolver;
 import org.flywaydb.spring.boot.ext.resolver.TableModuleResolver;
@@ -23,23 +28,32 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.data.jpa.EntityManagerFactoryDependsOnPostProcessor;
 import org.springframework.boot.autoconfigure.flyway.FlywayConfigurationCustomizer;
 import org.springframework.boot.autoconfigure.flyway.FlywayDataSource;
+import org.springframework.boot.autoconfigure.flyway.FlywayMigrationInitializer;
 import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.autoconfigure.jdbc.JdbcOperationsDependsOnPostProcessor;
+import org.springframework.boot.autoconfigure.jdbc.NamedParameterJdbcOperationsDependsOnPostProcessor;
+import org.springframework.boot.context.properties.ConfigurationPropertiesBinding;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.context.properties.PropertyMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.core.convert.TypeDescriptor;
+import org.springframework.core.convert.converter.GenericConverter;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.jdbc.core.JdbcOperations;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
 import org.springframework.orm.jpa.AbstractEntityManagerFactoryBean;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 /**
@@ -48,7 +62,6 @@ import org.springframework.util.StringUtils;
  */
 @Configuration
 @ConditionalOnClass(Flyway.class)
-@ConditionalOnBean({DataSource.class})
 @ConditionalOnProperty(prefix = "spring.flyway", name = "moduleable", havingValue = "true")
 /** 在主体数据库迁移之前完成各个模块的数据库迁移 */
 @AutoConfigureBefore(name = {
@@ -60,7 +73,6 @@ import org.springframework.util.StringUtils;
 	"com.zaxxer.hikari.spring.boot.HikaricpAutoConfiguration",
 	"org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration"
 })
-@EnableConfigurationProperties({ FlywayModularizedMigrationProperties.class })
 public class FlywayModularizedAutoConfiguration{
 	
 	@Bean
@@ -74,9 +86,24 @@ public class FlywayModularizedAutoConfiguration{
 		return new FlywayMigrationProvider();
 	}
 	
+	@Bean
+	@ConditionalOnMissingBean
+	@ConfigurationPropertiesBinding
+	public StringOrNumberToMigrationVersionConverter stringOrNumberMigrationVersionConverter() {
+		return new StringOrNumberToMigrationVersionConverter();
+	}
+
+	@Bean
+	public FlywayModularizedSchemaManagementProvider flywayModularizedDdlModeProvider(@Qualifier("flyways") List<Flyway> flyways) {
+		return new FlywayModularizedSchemaManagementProvider(flyways);
+	}
+	
 	@Configuration
 	@EnableConfigurationProperties({ DataSourceProperties.class, FlywayModularizedMigrationProperties.class })
-	public static class FlywayModuleConfiguration {
+	@Import({ FlywayModularizedMigrationInitializerEntityManagerFactoryDependsOnPostProcessor.class,
+		FlywayModularizedMigrationInitializerJdbcOperationsDependsOnPostProcessor.class,
+		FlywayModularizedMigrationInitializerNamedParameterJdbcOperationsDependsOnPostProcessor.class })
+	public static class FlywayModularizedConfiguration {
 
 		private final FlywayModularizedMigrationProperties properties;
 		
@@ -94,7 +121,7 @@ public class FlywayModularizedAutoConfiguration{
 		
 		private final List<FlywayFluentConfiguration> configurations;
 
-		public FlywayModuleConfiguration(
+		public FlywayModularizedConfiguration(
 				FlywayModularizedMigrationProperties properties,
 				DataSourceProperties dataSourceProperties, 
 				ResourceLoader resourceLoader,
@@ -305,68 +332,121 @@ public class FlywayModularizedAutoConfiguration{
 			return new FlywayModularizedMigrationInitializer(flyways, migrationStrategy.getIfAvailable());
 		}
 
-		/**
-		 * Additional configuration to ensure that EntityManagerFactory beans
-		 * depend on the {@code flywayInitializer} bean.
-		 */
-		@Configuration
-		@ConditionalOnClass(LocalContainerEntityManagerFactoryBean.class)
-		@ConditionalOnBean(AbstractEntityManagerFactoryBean.class)
-		protected static class FlywayInitializerJpaDependencyConfiguration
-				extends EntityManagerFactoryDependsOnPostProcessor {
+	}
+	 
 
-			public FlywayInitializerJpaDependencyConfiguration() {
-				super("flywayModuleInitializer");
-			}
+	/**
+	 * Post processor to ensure that {@link EntityManagerFactory} beans depend on any
+	 * {@link FlywayModularizedMigrationInitializer} beans.
+	 */
+	@ConditionalOnClass(LocalContainerEntityManagerFactoryBean.class)
+	@ConditionalOnBean(AbstractEntityManagerFactoryBean.class)
+	static class FlywayModularizedMigrationInitializerEntityManagerFactoryDependsOnPostProcessor
+			extends EntityManagerFactoryDependsOnPostProcessor {
 
+		FlywayModularizedMigrationInitializerEntityManagerFactoryDependsOnPostProcessor() {
+			super(FlywayModularizedMigrationInitializer.class);
 		}
 
-		/**
-		 * Additional configuration to ensure that {@link JdbcOperations} beans depend on
-		 * the {@code flywayInitializer} bean.
-		 */
-		@Configuration
-		@ConditionalOnClass(JdbcOperations.class)
-		@ConditionalOnBean(JdbcOperations.class)
-		protected static class FlywayInitializerJdbcOperationsDependencyConfiguration
-				extends JdbcOperationsDependsOnPostProcessor {
+	}
 
-			public FlywayInitializerJdbcOperationsDependencyConfiguration() {
-				super("flywayModuleInitializer");
-			}
+	/**
+	 * Post processor to ensure that {@link JdbcOperations} beans depend on any
+	 * {@link FlywayModularizedMigrationInitializer} beans.
+	 */
+	@ConditionalOnClass(JdbcOperations.class)
+	@ConditionalOnBean(JdbcOperations.class)
+	static class FlywayModularizedMigrationInitializerJdbcOperationsDependsOnPostProcessor
+			extends JdbcOperationsDependsOnPostProcessor {
 
+		FlywayModularizedMigrationInitializerJdbcOperationsDependsOnPostProcessor() {
+			super(FlywayModularizedMigrationInitializer.class);
+		}
+
+	}
+
+	/**
+	 * Post processor to ensure that {@link NamedParameterJdbcOperations} beans depend on
+	 * any {@link FlywayMigrationInitializer} beans.
+	 */
+	@ConditionalOnClass(NamedParameterJdbcOperations.class)
+	@ConditionalOnBean(NamedParameterJdbcOperations.class)
+	static class FlywayModularizedMigrationInitializerNamedParameterJdbcOperationsDependsOnPostProcessor
+			extends NamedParameterJdbcOperationsDependsOnPostProcessor {
+
+		FlywayModularizedMigrationInitializerNamedParameterJdbcOperationsDependsOnPostProcessor() {
+			super(FlywayModularizedMigrationInitializer.class);
+		}
+
+	} 
+
+	/**
+	 * Post processor to ensure that {@link EntityManagerFactory} beans depend on any
+	 * {@link Flyway} beans.
+	 */
+	@ConditionalOnClass(LocalContainerEntityManagerFactoryBean.class)
+	@ConditionalOnBean(AbstractEntityManagerFactoryBean.class)
+	static class FlywayModularizedEntityManagerFactoryDependsOnPostProcessor extends EntityManagerFactoryDependsOnPostProcessor {
+
+		FlywayModularizedEntityManagerFactoryDependsOnPostProcessor() {
+			super(Flyway.class);
+		}
+
+	}
+
+	/**
+	 * Post processor to ensure that {@link JdbcOperations} beans depend on any
+	 * {@link Flyway} beans.
+	 */
+	@ConditionalOnClass(JdbcOperations.class)
+	@ConditionalOnBean(JdbcOperations.class)
+	static class FlywayModularizedJdbcOperationsDependsOnPostProcessor extends JdbcOperationsDependsOnPostProcessor {
+
+		FlywayModularizedJdbcOperationsDependsOnPostProcessor() {
+			super("flyways");
+		}
+
+	}
+
+	/**
+	 * Post processor to ensure that {@link NamedParameterJdbcOperations} beans depend on
+	 * any {@link Flyway} beans.
+	 */
+	@ConditionalOnClass(NamedParameterJdbcOperations.class)
+	@ConditionalOnBean(NamedParameterJdbcOperations.class)
+	protected static class FlywayModularizedNamedParameterJdbcOperationsDependencyConfiguration
+			extends NamedParameterJdbcOperationsDependsOnPostProcessor {
+
+		public FlywayModularizedNamedParameterJdbcOperationsDependencyConfiguration() {
+			super("flyways");
 		}
 
 	}
 	
+	
 	/**
-	 * Additional configuration to ensure that EntityManagerFactory beans depend
-	 * on the {@code flyway} bean.
+	 * Convert a String or Number to a {@link MigrationVersion}.
 	 */
-	@Configuration
-	@ConditionalOnClass(LocalContainerEntityManagerFactoryBean.class)
-	@ConditionalOnBean(AbstractEntityManagerFactoryBean.class)
-	protected static class FlywayJpaDependencyConfiguration
-			extends EntityManagerFactoryDependsOnPostProcessor {
+	private static class StringOrNumberToMigrationVersionConverter implements GenericConverter {
 
-		public FlywayJpaDependencyConfiguration() {
-			super("flyways");
+		private static final Set<ConvertiblePair> CONVERTIBLE_TYPES;
+
+		static {
+			Set<ConvertiblePair> types = new HashSet<>(2);
+			types.add(new ConvertiblePair(String.class, MigrationVersion.class));
+			types.add(new ConvertiblePair(Number.class, MigrationVersion.class));
+			CONVERTIBLE_TYPES = Collections.unmodifiableSet(types);
 		}
 
-	}
+		@Override
+		public Set<ConvertiblePair> getConvertibleTypes() {
+			return CONVERTIBLE_TYPES;
+		}
 
-	/**
-	 * Additional configuration to ensure that {@link JdbcOperations} beans depend on the
-	 * {@code flyway} bean.
-	 */
-	@Configuration
-	@ConditionalOnClass(JdbcOperations.class)
-	@ConditionalOnBean(JdbcOperations.class)
-	protected static class FlywayJdbcOperationsDependencyConfiguration
-			extends JdbcOperationsDependsOnPostProcessor {
-
-		public FlywayJdbcOperationsDependencyConfiguration() {
-			super("flyways");
+		@Override
+		public Object convert(Object source, TypeDescriptor sourceType, TypeDescriptor targetType) {
+			String value = ObjectUtils.nullSafeToString(source);
+			return MigrationVersion.fromVersion(value);
 		}
 
 	}
