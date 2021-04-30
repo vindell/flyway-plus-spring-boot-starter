@@ -100,7 +100,7 @@ public class FlywayModularizedAutoConfiguration{
 	}
 	
 	@Configuration
-	@EnableConfigurationProperties({ DataSourceProperties.class, FlywayModularizedMigrationProperties.class })
+	@EnableConfigurationProperties({ DataSourceProperties.class, FlywayProperties.class, FlywayModularizedMigrationProperties.class })
 	@Import({ FlywayModularizedMigrationInitializerEntityManagerFactoryDependsOnPostProcessor.class,
 		FlywayModularizedMigrationInitializerJdbcOperationsDependsOnPostProcessor.class,
 		FlywayModularizedMigrationInitializerNamedParameterJdbcOperationsDependsOnPostProcessor.class })
