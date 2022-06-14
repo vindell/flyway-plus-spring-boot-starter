@@ -15,7 +15,7 @@ Spring Boot Starter For Flyway
 <dependency>
 	<groupId>com.github.hiwepy</groupId>
 	<artifactId>flyway-plus-spring-boot-starter</artifactId>
-	<version>${project.version}</version>
+	<version>2.0.0.RELEASE</version>
 </dependency>
 ```
 
