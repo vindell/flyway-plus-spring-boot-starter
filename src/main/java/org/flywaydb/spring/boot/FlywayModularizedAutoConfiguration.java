@@ -32,6 +32,7 @@ import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
+import java.time.Duration;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -222,16 +223,30 @@ public class FlywayModularizedAutoConfiguration{
 					+ " (please add migrations or check your Flyway configuration)");
 		}
 
+		/**
+		 * Configure the given {@code configuration} using the given {@code properties}.
+		 * <p>
+		 * To maximize forwards- and backwards-compatibility method references are not
+		 * used.
+		 * @param configuration the configuration
+		 * @param properties the properties
+		 */
 		private void configureProperties(FlywayModularizedProperties properties, FluentConfiguration configuration) {
 			PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
 			String[] locations = new LocationVendorResolver(configuration.getDataSource())
 					.resolveLocations(properties.getLocations());
 			locations = new LocationModuleResolver(properties.getModule()).resolveLocations(locations);
-			map.from(locations).to(configuration::locations);
+			configuration.locations(locations);
 			properties.setLocations(Arrays.asList(locations));
+			map.from(locations).to(configuration::locations);
+			map.from(properties.isFailOnMissingLocations()).to(configuration::failOnMissingLocations);
 			map.from(properties.getEncoding()).to(configuration::encoding);
 			map.from(properties.getConnectRetries()).to(configuration::connectRetries);
+			map.from(properties.getConnectRetriesInterval()).as(Duration::getSeconds).as(Long::intValue).to(configuration::connectRetriesInterval);
+			map.from(properties.getLockRetryCount()).to(configuration::lockRetryCount);
+			map.from(properties.getDefaultSchema()).to(configuration::defaultSchema);
 			map.from(properties.getSchemas()).as(StringUtils::toStringArray).to(configuration::schemas);
+			map.from(properties.isCreateSchemas()).to(configuration::createSchemas);
 			String table = new TableModuleResolver(properties.getModule()).resolveTable(properties.getTable());
 			map.from(table).to(configuration::table);
 			// No method reference for compatibility with Flyway 5.x
@@ -242,10 +257,10 @@ public class FlywayModularizedAutoConfiguration{
 			map.from(properties.getPlaceholders()).to(configuration::placeholders);
 			map.from(properties.getPlaceholderPrefix()).to(configuration::placeholderPrefix);
 			map.from(properties.getPlaceholderSuffix()).to(configuration::placeholderSuffix);
+			map.from(properties.getPlaceholderSeparator()).to(configuration::placeholderSeparator);
 			map.from(properties.isPlaceholderReplacement()).to(configuration::placeholderReplacement);
 			map.from(properties.getSqlMigrationPrefix()).to(configuration::sqlMigrationPrefix);
-			map.from(properties.getSqlMigrationSuffixes()).as(StringUtils::toStringArray)
-					.to(configuration::sqlMigrationSuffixes);
+			map.from(properties.getSqlMigrationSuffixes()).as(StringUtils::toStringArray).to(configuration::sqlMigrationSuffixes);
 			map.from(properties.getSqlMigrationSeparator()).to(configuration::sqlMigrationSeparator);
 			map.from(properties.getRepeatableSqlMigrationPrefix()).to(configuration::repeatableSqlMigrationPrefix);
 			map.from(properties.getTarget()).to(configuration::target);
@@ -253,33 +268,46 @@ public class FlywayModularizedAutoConfiguration{
 			map.from(properties.isCleanDisabled()).to(configuration::cleanDisabled);
 			map.from(properties.isCleanOnValidationError()).to(configuration::cleanOnValidationError);
 			map.from(properties.isGroup()).to(configuration::group);
-			map.from(properties.isIgnoreMissingMigrations()).to(configuration::ignoreMissingMigrations);
-			map.from(properties.isIgnoreIgnoredMigrations()).to(configuration::ignoreIgnoredMigrations);
-			map.from(properties.isIgnorePendingMigrations()).to(configuration::ignorePendingMigrations);
-			map.from(properties.isIgnoreFutureMigrations()).to(configuration::ignoreFutureMigrations);
 			map.from(properties.isMixed()).to(configuration::mixed);
 			map.from(properties.isOutOfOrder()).to(configuration::outOfOrder);
 			map.from(properties.isSkipDefaultCallbacks()).to(configuration::skipDefaultCallbacks);
 			map.from(properties.isSkipDefaultResolvers()).to(configuration::skipDefaultResolvers);
+			map.from(properties.isValidateMigrationNaming()).to(configuration::validateMigrationNaming);
 			map.from(properties.isValidateOnMigrate()).to(configuration::validateOnMigrate);
-			// Pro properties
-			map.from(properties.getBatch()).whenNonNull().to(configuration::batch);
-			map.from(properties.getDryRunOutput()).whenNonNull().to(configuration::dryRunOutput);
-			map.from(properties.getErrorOverrides()).whenNonNull().to(configuration::errorOverrides);
-			map.from(properties.getLicenseKey()).whenNonNull().to(configuration::licenseKey);
-			map.from(properties.getOracleSqlplus()).whenNonNull().to(configuration::oracleSqlplus);
-			// No method reference for compatibility with Flyway 5.x
-			map.from(properties.getOracleSqlplusWarn()).whenNonNull()
-					.to((oracleSqlplusWarn) -> configuration.oracleSqlplusWarn(oracleSqlplusWarn));
-			map.from(properties.getStream()).whenNonNull().to(configuration::stream);
-			map.from(properties.getUndoSqlMigrationPrefix()).whenNonNull().to(configuration::undoSqlMigrationPrefix);
+			map.from(properties.getInitSqls()).whenNot(CollectionUtils::isEmpty).as((initSqls) -> StringUtils.collectionToDelimitedString(initSqls, "\n")).to(configuration::initSql);
+			map.from(properties.getScriptPlaceholderPrefix()).to(configuration::scriptPlaceholderPrefix);
+			map.from(properties.getScriptPlaceholderSuffix()).to(configuration::scriptPlaceholderSuffix);
+			configureExecuteInTransaction(configuration, properties, map);
+			map.from(properties::getLoggers).to(configuration::loggers);
+			// Flyway Teams properties
+			map.from(properties.getBatch()).to(configuration::batch);
+			map.from(properties.getDryRunOutput()).to(configuration::dryRunOutput);
+			map.from(properties.getErrorOverrides()).to(configuration::errorOverrides);
+			map.from(properties.getStream()).to(configuration::stream);
+			map.from(properties.getJdbcProperties()).whenNot(Map::isEmpty).to(configuration::jdbcProperties);
+			map.from(properties.getKerberosConfigFile()).to(configuration::kerberosConfigFile);
+			map.from(properties.getOutputQueryResults()).to(configuration::outputQueryResults);
+			map.from(properties.getSkipExecutingMigrations()).to(configuration::skipExecutingMigrations);
+			map.from(properties.getIgnoreMigrationPatterns())
+					.whenNot(List::isEmpty)
+					.to((ignoreMigrationPatterns) -> configuration.ignoreMigrationPatterns(ignoreMigrationPatterns.toArray(new String[0])));
+			map.from(properties.getDetectEncoding()).to(configuration::detectEncoding);
 		}
 
+		private void configureExecuteInTransaction(FluentConfiguration configuration, FlywayModularizedProperties properties,
+												   PropertyMapper map) {
+			try {
+				map.from(properties.isExecuteInTransaction()).to(configuration::executeInTransaction);
+			}
+			catch (NoSuchMethodError ex) {
+				// Flyway < 9.14
+			}
+		}
+
+
 		private void configureConfiguration(FlywayFluentConfiguration configuration) {
-			
 			PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
-			String[] locations = new LocationVendorResolver(configuration.getDataSource())
-					.resolveLocations(configuration.getLocationAsStrings());
+			String[] locations = new LocationVendorResolver(configuration.getDataSource()).resolveLocations(configuration.getLocationAsStrings());
 			map.from(locations).to(configuration::locations);
 			map.from(properties.getEncoding()).to(configuration::encoding);
 			map.from(properties.getConnectRetries()).to(configuration::connectRetries);
@@ -301,10 +329,6 @@ public class FlywayModularizedAutoConfiguration{
 			map.from(properties.isCleanDisabled()).to(configuration::cleanDisabled);
 			map.from(properties.isCleanOnValidationError()).to(configuration::cleanOnValidationError);
 			map.from(properties.isGroup()).to(configuration::group);
-			map.from(properties.isIgnoreMissingMigrations()).to(configuration::ignoreMissingMigrations);
-			map.from(properties.isIgnoreIgnoredMigrations()).to(configuration::ignoreIgnoredMigrations);
-			map.from(properties.isIgnorePendingMigrations()).to(configuration::ignorePendingMigrations);
-			map.from(properties.isIgnoreFutureMigrations()).to(configuration::ignoreFutureMigrations);
 			map.from(properties.isMixed()).to(configuration::mixed);
 			map.from(properties.isOutOfOrder()).to(configuration::outOfOrder);
 			map.from(properties.isSkipDefaultCallbacks()).to(configuration::skipDefaultCallbacks);
@@ -314,14 +338,15 @@ public class FlywayModularizedAutoConfiguration{
 			map.from(properties.getBatch()).whenNonNull().to(configuration::batch);
 			map.from(properties.getDryRunOutput()).whenNonNull().to(configuration::dryRunOutput);
 			map.from(properties.getErrorOverrides()).whenNonNull().to(configuration::errorOverrides);
-			map.from(properties.getLicenseKey()).whenNonNull().to(configuration::licenseKey);
-			map.from(properties.getOracleSqlplus()).whenNonNull().to(configuration::oracleSqlplus);
-			// No method reference for compatibility with Flyway 5.x
-			map.from(properties.getOracleSqlplusWarn()).whenNonNull()
-					.to((oracleSqlplusWarn) -> configuration.oracleSqlplusWarn(oracleSqlplusWarn));
-			map.from(properties.getStream()).whenNonNull().to(configuration::stream);
-			map.from(properties.getUndoSqlMigrationPrefix()).whenNonNull().to(configuration::undoSqlMigrationPrefix);
-			
+			map.from(properties.getStream()).to(configuration::stream);
+			map.from(properties.getJdbcProperties()).whenNot(Map::isEmpty).to(configuration::jdbcProperties);
+			map.from(properties.getKerberosConfigFile()).to(configuration::kerberosConfigFile);
+			map.from(properties.getOutputQueryResults()).to(configuration::outputQueryResults);
+			map.from(properties.getSkipExecutingMigrations()).to(configuration::skipExecutingMigrations);
+			map.from(properties.getIgnoreMigrationPatterns())
+					.whenNot(List::isEmpty)
+					.to((ignoreMigrationPatterns) -> configuration.ignoreMigrationPatterns(ignoreMigrationPatterns.toArray(new String[0])));
+			map.from(properties.getDetectEncoding()).to(configuration::detectEncoding);
 		}
 		
 		private void configureCallbacks(FluentConfiguration configuration, List<Callback> callbacks) {

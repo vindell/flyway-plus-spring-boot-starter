@@ -18,6 +18,8 @@ package org.flywaydb.spring.boot.ext;
 import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,6 +29,8 @@ import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.springframework.boot.autoconfigure.flyway.FlywayProperties;
+import org.springframework.boot.convert.DurationUnit;
 
 /**
  * Flyway模块化配置：locations和table参数特别需要注意，每个模块不能相同
@@ -46,7 +50,7 @@ public class FlywayModularizedProperties {
 	private String module = "module";
 
 	/**
-	 * Whether to enable flyway.
+	 * Whether to enable flyway module supports.
 	 */
 	private boolean enabled = true;
 
@@ -54,6 +58,11 @@ public class FlywayModularizedProperties {
 	 * Whether to check that migration scripts location exists.
 	 */
 	private boolean checkLocation = true;
+
+	/**
+	 * Whether to fail if a location of migration scripts doesn't exist.
+	 */
+	private boolean failOnMissingLocations;
 
 	/**
 	 * Locations of migrations scripts. Can contain the special "{vendor}" placeholder to
@@ -72,9 +81,32 @@ public class FlywayModularizedProperties {
 	private int connectRetries;
 
 	/**
+	 * Maximum time between retries when attempting to connect to the database. If a
+	 * duration suffix is not specified, seconds will be used.
+	 */
+	@DurationUnit(ChronoUnit.SECONDS)
+	private Duration connectRetriesInterval = Duration.ofSeconds(120);
+
+	/**
+	 * Maximum number of retries when trying to obtain a lock.
+	 */
+	private int lockRetryCount = 50;
+
+	/**
+	 * Default schema name managed by Flyway (case-sensitive).
+	 */
+	private String defaultSchema;
+
+	/**
 	 * Scheme names managed by Flyway (case-sensitive).
 	 */
 	private List<String> schemas = new ArrayList<>();
+
+	/**
+	 * Whether Flyway should attempt to create the schemas specified in the schemas
+	 * property.
+	 */
+	private boolean createSchemas = true;
 
 	/**
 	 * Name of the schema history table that will be used by Flyway.
@@ -119,6 +151,11 @@ public class FlywayModularizedProperties {
 	private String placeholderSuffix = "}";
 
 	/**
+	 * Separator of default placeholders.
+	 */
+	private String placeholderSeparator = ":";
+
+	/**
 	 * Perform placeholder replacement in migration scripts.
 	 */
 	private boolean placeholderReplacement = true;
@@ -146,13 +183,7 @@ public class FlywayModularizedProperties {
 	/**
 	 * Target version up to which migrations should be considered.
 	 */
-	private String target;
-
-	/**
-	 * JDBC url of the database to migrate. If not set, the primary configured data source
-	 * is used.
-	 */
-	private String url;
+	private String target = "latest";
 
 	/**
 	 * Login user of the database to migrate.
@@ -163,6 +194,17 @@ public class FlywayModularizedProperties {
 	 * Login password of the database to migrate.
 	 */
 	private String password;
+
+	/**
+	 * Fully qualified name of the JDBC driver. Auto-detected based on the URL by default.
+	 */
+	private String driverClassName;
+
+	/**
+	 * JDBC url of the database to migrate. If not set, the primary configured data source
+	 * is used.
+	 */
+	private String url;
 
 	/**
 	 * SQL statements to execute to initialize a connection immediately after obtaining
@@ -178,7 +220,7 @@ public class FlywayModularizedProperties {
 	/**
 	 * Whether to disable cleaning of the database.
 	 */
-	private boolean cleanDisabled;
+	private boolean cleanDisabled = true;
 
 	/**
 	 * Whether to automatically call clean when a validation error occurs.
@@ -190,26 +232,6 @@ public class FlywayModularizedProperties {
 	 * applying them.
 	 */
 	private boolean group;
-
-	/**
-	 * Whether to ignore missing migrations when reading the schema history table.
-	 */
-	private boolean ignoreMissingMigrations;
-
-	/**
-	 * Whether to ignore ignored migrations when reading the schema history table.
-	 */
-	private boolean ignoreIgnoredMigrations;
-
-	/**
-	 * Whether to ignore pending migrations when reading the schema history table.
-	 */
-	private boolean ignorePendingMigrations;
-
-	/**
-	 * Whether to ignore future migrations when reading the schema history table.
-	 */
-	private boolean ignoreFutureMigrations = true;
 
 	/**
 	 * Whether to allow mixing transactional and non-transactional statements within the
@@ -233,55 +255,97 @@ public class FlywayModularizedProperties {
 	private boolean skipDefaultResolvers;
 
 	/**
+	 * Whether to validate migrations and callbacks whose scripts do not obey the correct
+	 * naming convention.
+	 */
+	private boolean validateMigrationNaming = false;
+
+	/**
 	 * Whether to automatically call validate when performing a migration.
 	 */
 	private boolean validateOnMigrate = true;
 
 	/**
-	 * Whether to batch SQL statements when executing them. Requires Flyway Pro or Flyway
-	 * Enterprise.
+	 * Prefix of placeholders in migration scripts.
+	 */
+	private String scriptPlaceholderPrefix = "FP__";
+
+	/**
+	 * Suffix of placeholders in migration scripts.
+	 */
+	private String scriptPlaceholderSuffix = "__";
+
+	/**
+	 * Whether Flyway should execute SQL within a transaction.
+	 */
+	private boolean executeInTransaction = true;
+
+	/**
+	 * Loggers Flyway should use.
+	 */
+	private String[] loggers = { "slf4j" };
+
+	/**
+	 * Whether to batch SQL statements when executing them. Requires Flyway Teams.
 	 */
 	private Boolean batch;
 
 	/**
 	 * File to which the SQL statements of a migration dry run should be output. Requires
-	 * Flyway Pro or Flyway Enterprise.
+	 * Flyway Teams.
 	 */
 	private File dryRunOutput;
 
 	/**
 	 * Rules for the built-in error handling to override specific SQL states and error
-	 * codes. Requires Flyway Pro or Flyway Enterprise.
+	 * codes. Requires Flyway Teams.
 	 */
 	private String[] errorOverrides;
 
 	/**
-	 * Licence key for Flyway Pro or Flyway Enterprise.
-	 */
-	private String licenseKey;
-
-	/**
-	 * Whether to enable support for Oracle SQL*Plus commands. Requires Flyway Pro or
-	 * Flyway Enterprise.
-	 */
-	private Boolean oracleSqlplus;
-
-	/**
-	 * Whether to issue a warning rather than an error when a not-yet-supported Oracle
-	 * SQL*Plus statement is encountered. Requires Flyway Pro or Flyway Enterprise.
-	 */
-	private Boolean oracleSqlplusWarn;
-
-	/**
-	 * Whether to stream SQL migrations when executing them. Requires Flyway Pro or Flyway
-	 * Enterprise.
+	 * Whether to stream SQL migrations when executing them. Requires Flyway Teams.
 	 */
 	private Boolean stream;
 
 	/**
-	 * File name prefix for undo SQL migrations. Requires Flyway Pro or Flyway Enterprise.
+	 * Properties to pass to the JDBC driver. Requires Flyway Teams.
 	 */
-	private String undoSqlMigrationPrefix;
+	private Map<String, String> jdbcProperties = new HashMap<>();
+
+	/**
+	 * Path of the Kerberos config file. Requires Flyway Teams.
+	 */
+	private String kerberosConfigFile;
+
+	/**
+	 * Whether Flyway should output a table with the results of queries when executing
+	 * migrations. Requires Flyway Teams.
+	 */
+	private Boolean outputQueryResults;
+
+	/**
+	 * Whether Flyway should skip executing the contents of the migrations and only update
+	 * the schema history table. Requires Flyway teams.
+	 */
+	private Boolean skipExecutingMigrations;
+
+	/**
+	 * Ignore migrations that match this comma-separated list of patterns when validating
+	 * migrations. Requires Flyway Teams.
+	 */
+	private List<String> ignoreMigrationPatterns;
+
+	/**
+	 * Whether to attempt to automatically detect SQL migration file encoding. Requires
+	 * Flyway Teams.
+	 */
+	private Boolean detectEncoding;
+
+	private final FlywayProperties.Oracle oracle = new FlywayProperties.Oracle();
+
+	private final FlywayProperties.Postgresql postgresql = new FlywayProperties.Postgresql();
+
+	private final FlywayProperties.Sqlserver sqlserver = new FlywayProperties.Sqlserver();
 
 	public boolean isCreateDataSource() {
 		return this.url != null || this.user != null;
